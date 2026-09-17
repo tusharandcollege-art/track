@@ -208,6 +208,62 @@
         </div>
       </div>
 
+      <!-- ===== PAGE: PROFILE ===== -->
+      <div class="page" id="page-profile">
+        <div class="page-scroll">
+          <div class="section-title">My Profile</div>
+          
+          <div id="profileContent" style="padding: 16px; text-align: center; display: none;">
+            <div id="profileAvatarContainer" style="margin-bottom: 16px;">
+              <img id="profileAvatarImg" src="" alt="Profile" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 3px solid var(--accent); display: none; margin: 0 auto;" />
+              <div id="profileAvatarFallback" style="font-size: 64px;">👤</div>
+            </div>
+            <h3 id="profileName" style="margin-bottom: 4px; font-size: 20px; font-weight: 700;">User Name</h3>
+            <p id="profileEmail" style="color: var(--text2); margin-bottom: 24px; font-size: 14px;">user@example.com</p>
+
+            <!-- Store Quick Stats -->
+            <div class="stats-grid" style="margin-bottom: 24px;">
+              <div class="stat-card">
+                <div class="stat-icon">📦</div>
+                <div class="stat-info">
+                  <div class="stat-label">Products</div>
+                  <div class="stat-value" id="profileStatProducts">0</div>
+                </div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-icon">🧾</div>
+                <div class="stat-info">
+                  <div class="stat-label">Sales Count</div>
+                  <div class="stat-value" id="profileStatTxns">0</div>
+                </div>
+              </div>
+            </div>
+
+            <div style="text-align: left; margin-bottom: 24px;" class="all-time-card">
+               <div class="all-time-row">
+                 <span>Account Status</span>
+                 <span class="green bold">Active</span>
+               </div>
+               <div class="divider-thin"></div>
+               <div class="all-time-row">
+                 <span>Sync Status</span>
+                 <span class="green bold">Cloud Synced ☁️</span>
+               </div>
+            </div>
+
+            <button class="btn-danger" style="width: 100%; max-width: 300px; margin: 0 auto; padding: 12px; font-size: 15px; font-weight: 600; display: block; border-radius: var(--radius-sm);" onclick="handleLogout()">🚪 Log Out</button>
+          </div>
+
+          <div id="profileNotLoggedIn" style="padding: 32px 16px; text-align: center;">
+             <div style="font-size: 48px; margin-bottom: 16px;">🔐</div>
+             <p style="color: var(--text2); margin-bottom: 24px;">Please log in to view your profile and sync your data.</p>
+             <button class="btn-primary" style="padding: 12px 24px; font-size: 16px;" onclick="openModal('authModal')">Log In with Google</button>
+          </div>
+          
+          <div style="height: 20px;"></div>
+        </div>
+      </div>
+
     </main>
 
     <!-- Bottom Navigation -->
@@ -227,6 +283,10 @@
       <button class="nav-btn" data-page="analytics">
         <span class="nav-icon">📊</span>
         <span class="nav-label">Analytics</span>
+      </button>
+      <button class="nav-btn" data-page="profile">
+        <span class="nav-icon">👤</span>
+        <span class="nav-label">Profile</span>
       </button>
     </nav>
   </div>

@@ -58,7 +58,7 @@ function initFirebase() {
   try {
     firebaseAuth.onAuthStateChanged(user => {
       if (user) {
-        state.currentUser = { uid: user.uid, email: user.email };
+        state.currentUser = { uid: user.uid, email: user.email, displayName: user.displayName, photoURL: user.photoURL };
         updateUserHeaderUI();
         loadUserDataFromFirebase(user.uid);
       } else {
@@ -90,9 +90,7 @@ function updateUserHeaderUI() {
 
 function openAuthModalClick() {
   if (state.currentUser) {
-    if (confirm(`Logged in as ${state.currentUser.email}.\nDo you want to log out?`)) {
-      handleLogout();
-    }
+    navigateTo('profile');
   } else {
     openModal('authModal');
   }
@@ -217,6 +215,7 @@ function handleLogout() {
       else if (state.currentPage === 'pos') renderPOS();
       else if (state.currentPage === 'inventory') renderInventory();
       else if (state.currentPage === 'analytics') renderAnalytics();
+      else if (state.currentPage === 'profile') renderProfile();
     });
   }
 }
@@ -244,6 +243,7 @@ async function loadUserDataFromFirebase(uid) {
     else if (state.currentPage === 'pos') renderPOS();
     else if (state.currentPage === 'inventory') renderInventory();
     else if (state.currentPage === 'analytics') renderAnalytics();
+    else if (state.currentPage === 'profile') renderProfile();
   } catch (err) {
     console.warn('Cloud data load error:', err);
   }
@@ -371,6 +371,45 @@ function navigateTo(page) {
   if (page === 'pos')       renderPOS();
   if (page === 'inventory') renderInventory();
   if (page === 'analytics') renderAnalytics();
+  if (page === 'profile')   renderProfile();
+}
+
+// ===================================================
+// PROFILE PAGE
+// ===================================================
+function renderProfile() {
+  const profileContent = document.getElementById('profileContent');
+  const profileNotLoggedIn = document.getElementById('profileNotLoggedIn');
+  const profileName = document.getElementById('profileName');
+  const profileEmail = document.getElementById('profileEmail');
+  const profileAvatarImg = document.getElementById('profileAvatarImg');
+  const profileAvatarFallback = document.getElementById('profileAvatarFallback');
+  const profileStatProducts = document.getElementById('profileStatProducts');
+  const profileStatTxns = document.getElementById('profileStatTxns');
+
+  if (state.currentUser) {
+    profileContent.style.display = 'block';
+    profileNotLoggedIn.style.display = 'none';
+
+    const nameStr = state.currentUser.displayName || (state.currentUser.email ? state.currentUser.email.split('@')[0] : 'User');
+    profileName.textContent = nameStr;
+    profileEmail.textContent = state.currentUser.email || '';
+
+    if (state.currentUser.photoURL) {
+      profileAvatarImg.src = state.currentUser.photoURL;
+      profileAvatarImg.style.display = 'block';
+      profileAvatarFallback.style.display = 'none';
+    } else {
+      profileAvatarImg.style.display = 'none';
+      profileAvatarFallback.style.display = 'block';
+    }
+
+    if (profileStatProducts) profileStatProducts.textContent = state.products ? state.products.length : 0;
+    if (profileStatTxns) profileStatTxns.textContent = state.transactions ? state.transactions.length : 0;
+  } else {
+    profileContent.style.display = 'none';
+    profileNotLoggedIn.style.display = 'block';
+  }
 }
 
 // ===================================================
