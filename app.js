@@ -98,6 +98,35 @@ function openAuthModalClick() {
   }
 }
 
+async function handleGoogleSignIn() {
+  const firebaseAuth = getAuth();
+  if (!firebaseAuth) {
+    showToast('Firebase library not loaded yet.', 'error');
+    return;
+  }
+  const provider = new firebase.auth.GoogleAuthProvider();
+  try {
+    const result = await firebaseAuth.signInWithPopup(provider);
+    const user = result.user;
+    showToast(`Welcome back, ${user.displayName || user.email}!`, 'success');
+    closeModal('authModal');
+  } catch (err) {
+    console.error('Google Sign-In Error:', err);
+    if (err.code === 'auth/popup-closed-by-user') return;
+    let msg = err.message || 'Google Sign-In failed.';
+    if (err.code === 'auth/unauthorized-domain') {
+      msg = 'Domain not authorized in Firebase. Add your Vercel/domain URL in Firebase Console -> Auth -> Settings -> Authorized domains.';
+    }
+    const errEl = document.getElementById('authErrorMsg');
+    if (errEl) {
+      errEl.textContent = msg;
+      errEl.style.display = 'block';
+    } else {
+      showToast(msg, 'error');
+    }
+  }
+}
+
 function switchAuthTab(mode) {
   authMode = mode;
   const loginBtn = document.getElementById('tabLoginBtn');

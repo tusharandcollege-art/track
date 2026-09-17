@@ -1216,6 +1216,32 @@ input { user-select: text; }
 }
 
 /* === User Auth Styles === */
+.google-auth-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 16px;
+  background: #ffffff;
+  border: 1px solid var(--border2);
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2937;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+.google-auth-btn:hover {
+  background: #f9fafb;
+  border-color: var(--blue);
+  transform: translateY(-1px);
+}
+.google-auth-btn:active {
+  transform: translateY(0);
+}
+
 .user-auth-btn {
   display: flex;
   align-items: center;
