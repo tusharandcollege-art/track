@@ -39,16 +39,24 @@ let db = null;
 let auth = null;
 let authMode = 'login';
 
-function initFirebase() {
-  if (typeof firebase === 'undefined') return;
-  try {
+function getAuth() {
+  if (auth) return auth;
+  if (typeof firebase !== 'undefined') {
     if (!firebase.apps.length) {
       firebase.initializeApp(firebaseConfig);
     }
     auth = firebase.auth();
     db = firebase.firestore();
+    return auth;
+  }
+  return null;
+}
 
-    auth.onAuthStateChanged(user => {
+function initFirebase() {
+  const firebaseAuth = getAuth();
+  if (!firebaseAuth) return;
+  try {
+    firebaseAuth.onAuthStateChanged(user => {
       if (user) {
         state.currentUser = { uid: user.uid, email: user.email };
         updateUserHeaderUI();
@@ -60,7 +68,7 @@ function initFirebase() {
       }
     });
   } catch (err) {
-    console.warn('Firebase init warning:', err);
+    console.warn('Firebase auth state listener warning:', err);
   }
 }
 
@@ -115,29 +123,56 @@ async function handleAuthSubmit(e) {
   const email = document.getElementById('authEmail').value.trim();
   const password = document.getElementById('authPassword').value;
   const errEl = document.getElementById('authErrorMsg');
+  const submitBtn = document.getElementById('authSubmitBtn');
 
   if (errEl) errEl.style.display = 'none';
 
-  if (!auth) {
-    showToast('Firebase Authentication ready!', 'info');
+  const firebaseAuth = getAuth();
+  if (!firebaseAuth) {
+    if (errEl) {
+      errEl.textContent = 'Firebase library not loaded yet. Please check your internet connection.';
+      errEl.style.display = 'block';
+    } else {
+      showToast('Firebase library not loaded yet.', 'error');
+    }
     return;
+  }
+
+  const origBtnText = submitBtn ? submitBtn.textContent : '';
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = '⏳ Processing...';
   }
 
   try {
     if (authMode === 'login') {
-      await auth.signInWithEmailAndPassword(email, password);
+      await firebaseAuth.signInWithEmailAndPassword(email, password);
       showToast(`Welcome back, ${email}!`, 'success');
     } else {
-      await auth.createUserWithEmailAndPassword(email, password);
+      await firebaseAuth.createUserWithEmailAndPassword(email, password);
       showToast(`Account created successfully!`, 'success');
     }
     closeModal('authModal');
   } catch (err) {
+    console.error('Firebase Auth Error:', err);
+    let msg = err.message || 'Authentication failed.';
+    if (err.code === 'auth/user-not-found') msg = 'No account found with this email. Click "Create Account" tab to sign up!';
+    if (err.code === 'auth/wrong-password') msg = 'Incorrect password. Please try again.';
+    if (err.code === 'auth/invalid-email') msg = 'Please enter a valid email address.';
+    if (err.code === 'auth/weak-password') msg = 'Password should be at least 6 characters long.';
+    if (err.code === 'auth/email-already-in-use') msg = 'An account already exists with this email. Try logging in instead!';
+    if (err.code === 'auth/operation-not-allowed') msg = 'Email/Password login is disabled in Firebase Console. Enable it in Firebase -> Authentication -> Sign-in method.';
+
     if (errEl) {
-      errEl.textContent = err.message || 'Authentication failed. Check details.';
+      errEl.textContent = msg;
       errEl.style.display = 'block';
     } else {
-      showToast(err.message, 'error');
+      showToast(msg, 'error');
+    }
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = origBtnText;
     }
   }
 }
