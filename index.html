@@ -23,7 +23,7 @@
         </div>
       </div>
       <div class="header-right">
-        <button class="user-auth-btn" id="openAuthModal" title="User Account">
+        <button class="user-auth-btn" id="openAuthModal" onclick="openAuthModalClick()" title="User Account">
           <span class="user-status-icon">👤</span>
           <span id="userAuthLabel">Log In</span>
         </button>
@@ -435,16 +435,16 @@
     <div class="modal modal-sm">
       <div class="modal-header">
         <h3 id="authModalTitle">👤 User Account</h3>
-        <button class="modal-close" id="closeAuthModal">✕</button>
+        <button class="modal-close" id="closeAuthModal" onclick="closeModal('authModal')">✕</button>
       </div>
       <div class="modal-body">
         <!-- Auth Tabs -->
         <div class="auth-tabs" id="authTabs">
-          <button class="auth-tab active" id="tabLoginBtn">Log In</button>
-          <button class="auth-tab" id="tabSignupBtn">Create Account</button>
+          <button class="auth-tab active" id="tabLoginBtn" type="button" onclick="switchAuthTab('login')">Log In</button>
+          <button class="auth-tab" id="tabSignupBtn" type="button" onclick="switchAuthTab('signup')">Create Account</button>
         </div>
 
-        <form id="authForm" style="margin-top:14px">
+        <form id="authForm" style="margin-top:14px" onsubmit="handleAuthSubmit(event)">
           <div class="input-group">
             <label>📧 Email Address</label>
             <input type="email" id="authEmail" placeholder="yourname@example.com" required />
@@ -465,7 +465,7 @@
         <div style="text-align:center;margin-top:16px;border-top:1px solid var(--border);padding-top:12px;">
           <span style="font-size:12px;color:var(--text2)">Or use as guest (saved on phone only):</span>
           <br>
-          <button class="btn-secondary" id="useGuestBtn" style="margin-top:8px;font-size:12px;padding:6px 14px">
+          <button class="btn-secondary" id="useGuestBtn" onclick="closeModal('authModal')" style="margin-top:8px;font-size:12px;padding:6px 14px">
             📱 Continue as Guest
           </button>
         </div>

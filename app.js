@@ -80,6 +80,16 @@ function updateUserHeaderUI() {
   }
 }
 
+function openAuthModalClick() {
+  if (state.currentUser) {
+    if (confirm(`Logged in as ${state.currentUser.email}.\nDo you want to log out?`)) {
+      handleLogout();
+    }
+  } else {
+    openModal('authModal');
+  }
+}
+
 function switchAuthTab(mode) {
   authMode = mode;
   const loginBtn = document.getElementById('tabLoginBtn');
