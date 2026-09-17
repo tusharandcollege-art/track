@@ -23,6 +23,10 @@
         </div>
       </div>
       <div class="header-right">
+        <button class="user-auth-btn" id="openAuthModal" title="User Account">
+          <span class="user-status-icon">👤</span>
+          <span id="userAuthLabel">Log In</span>
+        </button>
         <div class="header-time" id="headerTime"></div>
       </div>
     </header>
@@ -426,6 +430,53 @@
     </div>
   </div>
 
+  <!-- ===== USER LOGIN / SIGNUP MODAL ===== -->
+  <div class="modal-overlay" id="authModal">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h3 id="authModalTitle">👤 User Account</h3>
+        <button class="modal-close" id="closeAuthModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <!-- Auth Tabs -->
+        <div class="auth-tabs" id="authTabs">
+          <button class="auth-tab active" id="tabLoginBtn">Log In</button>
+          <button class="auth-tab" id="tabSignupBtn">Create Account</button>
+        </div>
+
+        <form id="authForm" style="margin-top:14px">
+          <div class="input-group">
+            <label>📧 Email Address</label>
+            <input type="email" id="authEmail" placeholder="yourname@example.com" required />
+          </div>
+
+          <div class="input-group">
+            <label>🔑 Password</label>
+            <input type="password" id="authPassword" placeholder="••••••••" required minlength="6" />
+          </div>
+
+          <div id="authErrorMsg" class="auth-error-msg" style="display:none;color:var(--red);font-size:12px;margin-top:6px;font-weight:600"></div>
+
+          <button type="submit" class="btn-primary" id="authSubmitBtn" style="width:100%;margin-top:14px;padding:12px">
+            🔓 Log In
+          </button>
+        </form>
+
+        <div style="text-align:center;margin-top:16px;border-top:1px solid var(--border);padding-top:12px;">
+          <span style="font-size:12px;color:var(--text2)">Or use as guest (saved on phone only):</span>
+          <br>
+          <button class="btn-secondary" id="useGuestBtn" style="margin-top:8px;font-size:12px;padding:6px 14px">
+            📱 Continue as Guest
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase Compat SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

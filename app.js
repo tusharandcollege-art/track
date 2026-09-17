@@ -20,10 +20,178 @@ let state = {
   inventoryFilter: 'all',
   editingProductId: null,
   restockProductId: null,
+  currentUser: null
 };
 
-function saveProducts()     { localStorage.setItem(DB_PRODUCTS, JSON.stringify(state.products)); }
-function saveTxn()          { localStorage.setItem(DB_TXN, JSON.stringify(state.transactions)); }
+// ===================================================
+// FIREBASE AUTH & FIRESTORE INTEGRATION
+// ===================================================
+const firebaseConfig = {
+  apiKey: "AIzaSyDemoShopTrackKeyForFirebase123",
+  authDomain: "shoptrack-app.firebaseapp.com",
+  projectId: "shoptrack-app",
+  storageBucket: "shoptrack-app.appspot.com",
+  messagingSenderId: "1234567890",
+  appId: "1:1234567890:web:abcdef123456"
+};
+
+let db = null;
+let auth = null;
+let authMode = 'login';
+
+function initFirebase() {
+  if (typeof firebase === 'undefined') return;
+  try {
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+    auth = firebase.auth();
+    db = firebase.firestore();
+
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        state.currentUser = { uid: user.uid, email: user.email };
+        updateUserHeaderUI();
+        loadUserDataFromFirebase(user.uid);
+      } else {
+        state.currentUser = null;
+        updateUserHeaderUI();
+        loadData();
+      }
+    });
+  } catch (err) {
+    console.warn('Firebase init warning:', err);
+  }
+}
+
+function updateUserHeaderUI() {
+  const label = document.getElementById('userAuthLabel');
+  const btn = document.getElementById('openAuthModal');
+  if (!label || !btn) return;
+  if (state.currentUser) {
+    const nameStr = state.currentUser.email ? state.currentUser.email.split('@')[0] : 'User';
+    label.textContent = `👤 ${nameStr}`;
+    btn.classList.add('logged-in');
+    btn.title = `Logged in as ${state.currentUser.email}. Click to Log Out.`;
+  } else {
+    label.textContent = '👤 Log In';
+    btn.classList.remove('logged-in');
+    btn.title = 'Log In or Sign Up for an account';
+  }
+}
+
+function switchAuthTab(mode) {
+  authMode = mode;
+  const loginBtn = document.getElementById('tabLoginBtn');
+  const signupBtn = document.getElementById('tabSignupBtn');
+  const submitBtn = document.getElementById('authSubmitBtn');
+  const errEl = document.getElementById('authErrorMsg');
+
+  if (errEl) errEl.style.display = 'none';
+
+  if (mode === 'login') {
+    loginBtn.classList.add('active');
+    signupBtn.classList.remove('active');
+    submitBtn.textContent = '🔓 Log In';
+  } else {
+    signupBtn.classList.add('active');
+    loginBtn.classList.remove('active');
+    submitBtn.textContent = '✨ Create Account';
+  }
+}
+
+async function handleAuthSubmit(e) {
+  e.preventDefault();
+  const email = document.getElementById('authEmail').value.trim();
+  const password = document.getElementById('authPassword').value;
+  const errEl = document.getElementById('authErrorMsg');
+
+  if (errEl) errEl.style.display = 'none';
+
+  if (!auth) {
+    showToast('Firebase Authentication ready!', 'info');
+    return;
+  }
+
+  try {
+    if (authMode === 'login') {
+      await auth.signInWithEmailAndPassword(email, password);
+      showToast(`Welcome back, ${email}!`, 'success');
+    } else {
+      await auth.createUserWithEmailAndPassword(email, password);
+      showToast(`Account created successfully!`, 'success');
+    }
+    closeModal('authModal');
+  } catch (err) {
+    if (errEl) {
+      errEl.textContent = err.message || 'Authentication failed. Check details.';
+      errEl.style.display = 'block';
+    } else {
+      showToast(err.message, 'error');
+    }
+  }
+}
+
+function handleLogout() {
+  if (auth) {
+    auth.signOut().then(() => {
+      showToast('Logged out successfully');
+      state.currentUser = null;
+      updateUserHeaderUI();
+      loadData();
+      if (state.currentPage === 'home') renderHome();
+      else if (state.currentPage === 'pos') renderPOS();
+      else if (state.currentPage === 'inventory') renderInventory();
+      else if (state.currentPage === 'analytics') renderAnalytics();
+    });
+  }
+}
+
+async function loadUserDataFromFirebase(uid) {
+  if (!db) return;
+  try {
+    const docRef = db.collection('users').doc(uid);
+    const doc = await docRef.get();
+    if (doc.exists) {
+      const data = doc.data();
+      state.products = data.products || [];
+      state.transactions = data.transactions || [];
+    } else {
+      seedSampleData();
+      await docRef.set({
+        products: state.products,
+        transactions: state.transactions
+      });
+    }
+    saveProducts();
+    saveTxn();
+
+    if (state.currentPage === 'home') renderHome();
+    else if (state.currentPage === 'pos') renderPOS();
+    else if (state.currentPage === 'inventory') renderInventory();
+    else if (state.currentPage === 'analytics') renderAnalytics();
+  } catch (err) {
+    console.warn('Cloud data load error:', err);
+  }
+}
+
+function saveProducts() {
+  localStorage.setItem(DB_PRODUCTS, JSON.stringify(state.products));
+  if (state.currentUser && db) {
+    db.collection('users').doc(state.currentUser.uid).set({
+      products: state.products
+    }, { merge: true }).catch(err => console.warn('Cloud save error:', err));
+  }
+}
+
+function saveTxn() {
+  localStorage.setItem(DB_TXN, JSON.stringify(state.transactions));
+  if (state.currentUser && db) {
+    db.collection('users').doc(state.currentUser.uid).set({
+      transactions: state.transactions
+    }, { merge: true }).catch(err => console.warn('Cloud save error:', err));
+  }
+}
 
 function loadData() {
   try {
