@@ -106,8 +106,11 @@ async function handleGoogleSignIn() {
   try {
     const result = await firebaseAuth.signInWithPopup(provider);
     const user = result.user;
+    state.currentUser = { uid: user.uid, email: user.email, displayName: user.displayName, photoURL: user.photoURL };
+    updateUserHeaderUI();
     showToast(`Welcome back, ${user.displayName || user.email}!`, 'success');
     closeModal('authModal');
+    navigateTo('profile');
   } catch (err) {
     console.error('Google Sign-In Error:', err);
     if (err.code === 'auth/popup-closed-by-user') return;
@@ -1635,6 +1638,7 @@ function init() {
   initEvents();
   updateClock();
   setInterval(updateClock, 30000);
+  initFirebase();
   navigateTo('pos');
 }
 
