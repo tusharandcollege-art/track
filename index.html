@@ -430,62 +430,32 @@
     </div>
   </div>
 
-  <!-- ===== USER LOGIN / SIGNUP MODAL ===== -->
+  <!-- ===== GOOGLE SIGN IN MODAL ===== -->
   <div class="modal-overlay" id="authModal">
-    <div class="modal modal-sm">
-      <div class="modal-header">
-        <h3 id="authModalTitle">👤 User Account</h3>
+    <div class="modal modal-sm" style="text-align:center;">
+      <div class="modal-header" style="justify-content:space-between;align-items:center;border-bottom:none;padding-bottom:0">
+        <h3 id="authModalTitle" style="font-size:18px">🌐 Account Sign In</h3>
         <button class="modal-close" id="closeAuthModal" onclick="closeModal('authModal')">✕</button>
       </div>
-      <div class="modal-body">
+      <div class="modal-body" style="padding-top:12px">
+        <div style="font-size:42px;margin-bottom:8px">🔐</div>
+        <h4 style="font-size:16px;font-weight:700;margin-bottom:6px">Welcome to ShopTrack</h4>
+        <p style="font-size:13px;color:var(--text2);margin-bottom:20px;line-height:1.4">
+          Sign in with your Google account to sync your shop sales, inventory & reports across all your devices.
+        </p>
+
         <!-- Google Sign In Button -->
-        <button type="button" class="google-auth-btn" id="googleAuthBtn" onclick="handleGoogleSignIn()">
-          <svg width="18" height="18" viewBox="0 0 18 18">
+        <button type="button" class="google-auth-btn" id="googleAuthBtn" onclick="handleGoogleSignIn()" style="padding:12px 16px;font-size:15px">
+          <svg width="20" height="20" viewBox="0 0 18 18">
             <path fill="#4285F4" d="M17.64 9.2c0-.74-.06-1.28-.19-1.84H9v3.34h4.96c-.1.83-.64 2.08-1.84 2.92l2.84 2.2c1.7-1.57 2.68-3.88 2.68-6.62z"/>
             <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.84-2.2c-.76.53-1.78.9-3.12.9-2.38 0-4.41-1.57-5.13-3.72L.97 13.01C2.47 15.98 5.48 18 9 18z"/>
             <path fill="#FBBC05" d="M3.87 10.8c-.18-.53-.28-1.1-.28-1.8s.1-1.27.28-1.8L.97 4.99C.35 6.22 0 7.6 0 9s.35 2.78.97 4.01l2.9-2.21z"/>
             <path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0 5.48 0 2.47 2.02.97 4.99l2.9 2.21C4.59 5.05 6.62 3.58 9 3.58z"/>
           </svg>
-          <span>Continue with Google</span>
+          <span>Sign in with Google</span>
         </button>
 
-        <div style="display:flex;align-items:center;gap:10px;margin:14px 0 10px 0;">
-          <div style="flex:1;height:1px;background:var(--border)"></div>
-          <span style="font-size:11px;color:var(--text3);font-weight:600">OR EMAIL</span>
-          <div style="flex:1;height:1px;background:var(--border)"></div>
-        </div>
-
-        <!-- Auth Tabs -->
-        <div class="auth-tabs" id="authTabs">
-          <button class="auth-tab active" id="tabLoginBtn" type="button" onclick="switchAuthTab('login')">Log In</button>
-          <button class="auth-tab" id="tabSignupBtn" type="button" onclick="switchAuthTab('signup')">Create Account</button>
-        </div>
-
-        <form id="authForm" style="margin-top:14px" onsubmit="handleAuthSubmit(event)">
-          <div class="input-group">
-            <label>📧 Email Address</label>
-            <input type="email" id="authEmail" placeholder="yourname@example.com" required />
-          </div>
-
-          <div class="input-group">
-            <label>🔑 Password</label>
-            <input type="password" id="authPassword" placeholder="••••••••" required minlength="6" />
-          </div>
-
-          <div id="authErrorMsg" class="auth-error-msg" style="display:none;color:var(--red);font-size:12px;margin-top:6px;font-weight:600"></div>
-
-          <button type="submit" class="btn-primary" id="authSubmitBtn" style="width:100%;margin-top:14px;padding:12px">
-            🔓 Log In
-          </button>
-        </form>
-
-        <div style="text-align:center;margin-top:16px;border-top:1px solid var(--border);padding-top:12px;">
-          <span style="font-size:12px;color:var(--text2)">Or use as guest (saved on phone only):</span>
-          <br>
-          <button class="btn-secondary" id="useGuestBtn" onclick="closeModal('authModal')" style="margin-top:8px;font-size:12px;padding:6px 14px">
-            📱 Continue as Guest
-          </button>
-        </div>
+        <div id="authErrorMsg" class="auth-error-msg" style="display:none;color:var(--red);font-size:12px;margin-top:14px;font-weight:600;text-align:left"></div>
       </div>
     </div>
   </div>
