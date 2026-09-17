@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="description" content="Mobile POS - Track Sales, Inventory & Earnings in Real-Time" />
+  <title>ShopTrack – Mobile POS & Inventory</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+  <!-- App Shell -->
+  <div id="app">
+    <!-- Header -->
+    <header class="header" id="appHeader">
+      <div class="header-left">
+        <div class="logo">
+          <span class="logo-icon">🏪</span>
+          <span class="logo-text">ShopTrack</span>
+        </div>
+      </div>
+      <div class="header-right">
+        <button class="icon-btn" id="themeToggle" title="Toggle Theme">🌙</button>
+        <div class="header-time" id="headerTime"></div>
+      </div>
+    </header>
+
+    <!-- Pages -->
+    <main class="main-content" id="mainContent">
+
+      <!-- ===== PAGE: HOME / DASHBOARD ===== -->
+      <div class="page active" id="page-home">
+        <div class="page-scroll">
+          <div class="greeting-banner">
+            <div class="greeting-text">
+              <h1 id="greetingText">Good Morning! 👋</h1>
+              <p>Here's your store summary</p>
+            </div>
+            <div class="greeting-date" id="greetingDate"></div>
+          </div>
+
+          <!-- Today's Stats -->
+          <div class="section-title">Today's Overview</div>
+          <div class="stats-grid">
+            <div class="stat-card revenue">
+              <div class="stat-icon">💰</div>
+              <div class="stat-info">
+                <div class="stat-label">Revenue</div>
+                <div class="stat-value" id="todayRevenue">₹0</div>
+              </div>
+            </div>
+            <div class="stat-card profit">
+              <div class="stat-icon">📈</div>
+              <div class="stat-info">
+                <div class="stat-label">Profit</div>
+                <div class="stat-value" id="todayProfit">₹0</div>
+              </div>
+            </div>
+            <div class="stat-card sales">
+              <div class="stat-icon">🛒</div>
+              <div class="stat-info">
+                <div class="stat-label">Sales</div>
+                <div class="stat-value" id="todaySales">0</div>
+              </div>
+            </div>
+            <div class="stat-card items-sold">
+              <div class="stat-icon">📦</div>
+              <div class="stat-info">
+                <div class="stat-label">Items Sold</div>
+                <div class="stat-value" id="todayItems">0</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- All Time Stats -->
+          <div class="section-title">All-Time Total</div>
+          <div class="all-time-card">
+            <div class="all-time-row">
+              <span>Total Revenue</span>
+              <span class="all-time-val green" id="allRevenue">₹0</span>
+            </div>
+            <div class="divider-thin"></div>
+            <div class="all-time-row">
+              <span>Total Cost</span>
+              <span class="all-time-val red" id="allCost">₹0</span>
+            </div>
+            <div class="divider-thin"></div>
+            <div class="all-time-row">
+              <span>Net Profit</span>
+              <span class="all-time-val bold green" id="allProfit">₹0</span>
+            </div>
+            <div class="divider-thin"></div>
+            <div class="all-time-row">
+              <span>Transactions</span>
+              <span class="all-time-val" id="allTxn">0</span>
+            </div>
+          </div>
+
+          <!-- Low Stock Alert -->
+          <div id="lowStockSection" style="display:none">
+            <div class="section-title alert-title">⚠️ Low Stock Alerts</div>
+            <div id="lowStockList" class="low-stock-list"></div>
+          </div>
+
+          <!-- Recent Transactions -->
+          <div class="section-title">Recent Transactions</div>
+          <div id="recentTxnList" class="txn-list">
+            <div class="empty-state">No transactions yet.<br>Go to POS to make a sale!</div>
+          </div>
+
+          <div style="height: 20px;"></div>
+        </div>
+      </div>
+
+      <!-- ===== PAGE: POS (SELL) ===== -->
+      <div class="page" id="page-pos">
+        <div class="page-scroll">
+          <div class="pos-header">
+            <h2>Point of Sale</h2>
+            <div class="search-bar">
+              <span class="search-icon">🔍</span>
+              <input type="text" id="productSearch" placeholder="Search products..." />
+            </div>
+          </div>
+
+          <!-- Product Grid -->
+          <div class="section-title">Select Products</div>
+          <div id="productGrid" class="product-grid"></div>
+
+          <!-- Cart Section -->
+          <div class="cart-container" id="cartContainer">
+            <div class="cart-header">
+              <span class="cart-title">🛒 Cart</span>
+              <button class="clear-cart-btn" id="clearCartBtn">Clear All</button>
+            </div>
+            <div id="cartItems" class="cart-items"></div>
+            <div class="cart-footer">
+              <div class="cart-total-row">
+                <span>Subtotal</span>
+                <span id="cartSubtotal">₹0.00</span>
+              </div>
+              <div class="cart-total-row">
+                <span>Items</span>
+                <span id="cartItemCount">0</span>
+              </div>
+              <button class="checkout-btn" id="checkoutBtn">
+                <span>✅ Complete Sale</span>
+                <span id="checkoutTotal">₹0.00</span>
+              </button>
+            </div>
+          </div>
+
+          <div style="height: 20px;"></div>
+        </div>
+      </div>
+
+      <!-- ===== PAGE: INVENTORY ===== -->
+      <div class="page" id="page-inventory">
+        <div class="page-scroll">
+          <div class="inv-header">
+            <h2>Inventory</h2>
+            <button class="add-product-btn" id="openAddProductModal">+ Add Product</button>
+          </div>
+
+          <div class="inv-filter-row">
+            <button class="filter-chip active" data-filter="all">All</button>
+            <button class="filter-chip" data-filter="low">Low Stock</button>
+            <button class="filter-chip" data-filter="out">Out of Stock</button>
+          </div>
+
+          <div id="inventoryList" class="inventory-list"></div>
+          <div style="height: 20px;"></div>
+        </div>
+      </div>
+
+      <!-- ===== PAGE: ANALYTICS ===== -->
+      <div class="page" id="page-analytics">
+        <div class="page-scroll">
+          <div class="analytics-page-header">
+            <h2 class="analytics-title">Sales Analytics</h2>
+            <button class="excel-export-btn" id="openExcelModal">
+              <span>📊</span> Export Excel
+            </button>
+          </div>
+
+          <div class="period-tabs">
+            <button class="period-tab active" data-period="today">Today</button>
+            <button class="period-tab" data-period="week">This Week</button>
+            <button class="period-tab" data-period="all">All Time</button>
+          </div>
+
+          <div class="section-title">Product Performance</div>
+          <div id="productAnalytics" class="analytics-list"></div>
+
+          <div class="section-title">Transaction History</div>
+          <div id="txnHistoryList" class="txn-list"></div>
+
+          <div style="height: 20px;"></div>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav" id="bottomNav">
+      <button class="nav-btn" data-page="home">
+        <span class="nav-icon">🏠</span>
+        <span class="nav-label">Home</span>
+      </button>
+      <button class="nav-btn active" data-page="pos">
+        <span class="nav-icon">🛒</span>
+        <span class="nav-label">Sell</span>
+      </button>
+      <button class="nav-btn" data-page="inventory">
+        <span class="nav-icon">📦</span>
+        <span class="nav-label">Inventory</span>
+      </button>
+      <button class="nav-btn" data-page="analytics">
+        <span class="nav-icon">📊</span>
+        <span class="nav-label">Analytics</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- ===== MODALS ===== -->
+
+  <!-- Add/Edit Product Modal -->
+  <div class="modal-overlay" id="productModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="productModalTitle">Add New Product</h3>
+        <button class="modal-close" id="closeProductModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="editProductId" />
+        <div class="form-group">
+          <label>Product Name *</label>
+          <input type="text" id="pName" placeholder="e.g. Dairy Milk Chocolate" />
+        </div>
+        <div class="form-group">
+          <label>Category</label>
+          <input type="text" id="pCategory" placeholder="e.g. Chocolates, Beverages..." />
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Cost Price (₹) *</label>
+            <input type="number" id="pCostPrice" placeholder="0.00" min="0" step="0.01" />
+          </div>
+          <div class="form-group">
+            <label>Selling Price (₹) *</label>
+            <input type="number" id="pSellPrice" placeholder="0.00" min="0" step="0.01" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Stock Quantity *</label>
+            <input type="number" id="pStock" placeholder="0" min="0" />
+          </div>
+          <div class="form-group">
+            <label>Low Stock Alert (qty)</label>
+            <input type="number" id="pLowAlert" placeholder="5" min="1" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Emoji / Icon</label>
+          <input type="text" id="pEmoji" placeholder="🍫" maxlength="4" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" id="cancelProductModal">Cancel</button>
+        <button class="btn-primary" id="saveProductBtn">Save Product</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Restock Modal -->
+  <div class="modal-overlay" id="restockModal">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h3>📦 Restock</h3>
+        <button class="modal-close" id="closeRestockModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="restock-product-info" id="restockProductInfo"></div>
+        <div class="form-group">
+          <label>Add Stock Quantity</label>
+          <div class="qty-input-row">
+            <button class="qty-adj-btn" id="restockMinus">−</button>
+            <input type="number" id="restockQty" value="10" min="1" />
+            <button class="qty-adj-btn" id="restockPlus">+</button>
+          </div>
+        </div>
+        <div class="quick-qty-row">
+          <button class="quick-qty-btn" data-qty="5">+5</button>
+          <button class="quick-qty-btn" data-qty="10">+10</button>
+          <button class="quick-qty-btn" data-qty="25">+25</button>
+          <button class="quick-qty-btn" data-qty="50">+50</button>
+          <button class="quick-qty-btn" data-qty="100">+100</button>
+        </div>
+        <input type="hidden" id="restockProductId" />
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" id="cancelRestockModal">Cancel</button>
+        <button class="btn-primary" id="confirmRestockBtn">Add to Stock</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Checkout Confirm Modal -->
+  <div class="modal-overlay" id="checkoutModal">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h3>✅ Confirm Sale</h3>
+        <button class="modal-close" id="closeCheckoutModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <div id="checkoutSummary" class="checkout-summary"></div>
+        <div class="checkout-total-row">
+          <span>Total Amount</span>
+          <span id="checkoutTotalDisplay" class="checkout-total-val">₹0.00</span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" id="cancelCheckout">Cancel</button>
+        <button class="btn-success" id="confirmSaleBtn">✅ Confirm & Record</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="toast"></div>
+
+  <!-- ===== EXCEL EXPORT MODAL ===== -->
+  <div class="modal-overlay" id="excelModal">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h3>📊 Export Excel Report</h3>
+        <button class="modal-close" id="closeExcelModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="color:var(--text2);font-size:13px;margin-bottom:16px;">Choose what to include in your Excel report. All selected sheets will be exported in one <strong>.xlsx</strong> file.</p>
+
+        <div class="excel-period-row">
+          <label style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;">Report Period</label>
+          <select id="excelPeriod" class="excel-select">
+            <option value="today">Today Only</option>
+            <option value="week">This Week</option>
+            <option value="all" selected>All Time</option>
+          </select>
+        </div>
+
+        <div class="section-title" style="margin-top:16px;">Include Sheets</div>
+        <div class="excel-sheet-options">
+          <label class="excel-option">
+            <input type="checkbox" id="sheetSummary" checked />
+            <div class="excel-option-info">
+              <span class="excel-option-icon">📋</span>
+              <div>
+                <div class="excel-option-title">Sales Summary</div>
+                <div class="excel-option-desc">Revenue, Profit, Costs overview</div>
+              </div>
+            </div>
+          </label>
+          <label class="excel-option">
+            <input type="checkbox" id="sheetProducts" checked />
+            <div class="excel-option-info">
+              <span class="excel-option-icon">📈</span>
+              <div>
+                <div class="excel-option-title">Product Performance</div>
+                <div class="excel-option-desc">Per-product sales, revenue & profit</div>
+              </div>
+            </div>
+          </label>
+          <label class="excel-option">
+            <input type="checkbox" id="sheetTransactions" checked />
+            <div class="excel-option-info">
+              <span class="excel-option-icon">🧾</span>
+              <div>
+                <div class="excel-option-title">Transaction History</div>
+                <div class="excel-option-desc">Every sale with items & amounts</div>
+              </div>
+            </div>
+          </label>
+          <label class="excel-option">
+            <input type="checkbox" id="sheetInventory" checked />
+            <div class="excel-option-info">
+              <span class="excel-option-icon">📦</span>
+              <div>
+                <div class="excel-option-title">Inventory Status</div>
+                <div class="excel-option-desc">Current stock, prices, alerts</div>
+              </div>
+            </div>
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" id="cancelExcelModal">Cancel</button>
+        <button class="btn-excel" id="downloadExcelBtn">⬇️ Download .xlsx</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
