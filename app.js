@@ -208,6 +208,17 @@ function renderHome() {
   } else {
     recentEl.innerHTML = recent.map(t => buildTxnCard(t)).join('');
   }
+
+  const undoBtn = document.getElementById('undoLastBtn');
+  if (undoBtn) {
+    if (allTxn.length === 0) {
+      undoBtn.style.opacity = '0.5';
+      undoBtn.style.pointerEvents = 'none';
+    } else {
+      undoBtn.style.opacity = '1';
+      undoBtn.style.pointerEvents = 'auto';
+    }
+  }
 }
 
 function buildTxnCard(t) {
@@ -218,9 +229,10 @@ function buildTxnCard(t) {
         <div class="txn-time">${formatTime(t.ts)}</div>
         <div class="txn-items">${itemList}</div>
       </div>
-      <div class="txn-right">
+      <div class="txn-right" style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
         <div class="txn-amount">${formatCurrency(t.total)}</div>
         <div class="txn-profit">Profit: ${formatCurrency(t.profit)}</div>
+        <button class="txn-undo-btn" title="Undo / Cancel this sale" onclick="openUndoModal('${t.id}')">↩️ Undo</button>
       </div>
     </div>
   `;
@@ -623,6 +635,81 @@ function confirmRestock() {
 }
 
 // ===================================================
+// UNDO / CANCEL SALE LOGIC
+// ===================================================
+function undoLastSale() {
+  if (!state.transactions || state.transactions.length === 0) {
+    showToast('No transactions to undo', 'error');
+    return;
+  }
+  const lastTxn = [...state.transactions].sort((a, b) => b.ts - a.ts)[0];
+  openUndoModal(lastTxn.id);
+}
+
+function openUndoModal(txnId) {
+  const txn = state.transactions.find(t => t.id === txnId);
+  if (!txn) {
+    showToast('Transaction not found', 'error');
+    return;
+  }
+  document.getElementById('undoTxnId').value = txnId;
+  const itemsHtml = txn.items.map(i => `
+    <div class="undo-detail-item">
+      <span>${i.qty}x ${i.name}</span>
+      <span>${formatCurrency(i.price * i.qty)}</span>
+    </div>
+  `).join('');
+
+  document.getElementById('undoSaleDetails').innerHTML = `
+    <div class="undo-detail-time">📅 ${new Date(txn.ts).toLocaleString()}</div>
+    ${itemsHtml}
+    <div class="undo-detail-total">
+      <span>Total to Refund</span>
+      <strong>${formatCurrency(txn.total)}</strong>
+    </div>
+    <div class="undo-restore-note">
+      📦 Restores ${txn.items.reduce((acc, i) => acc + i.qty, 0)} item(s) back to inventory stock
+    </div>
+  `;
+  openModal('undoModal');
+}
+
+function confirmUndoSale() {
+  const txnId = document.getElementById('undoTxnId').value;
+  const txnIndex = state.transactions.findIndex(t => t.id === txnId);
+  if (txnIndex === -1) {
+    showToast('Transaction not found', 'error');
+    closeModal('undoModal');
+    return;
+  }
+
+  const txn = state.transactions[txnIndex];
+
+  // Restore inventory stock and adjust sold count
+  txn.items.forEach(item => {
+    const prod = getProductById(item.id);
+    if (prod) {
+      prod.stock += item.qty;
+      prod.sold = Math.max(0, (prod.sold || 0) - item.qty);
+    }
+  });
+
+  // Remove transaction
+  state.transactions.splice(txnIndex, 1);
+  saveTxn();
+  saveProducts();
+
+  closeModal('undoModal');
+  showToast('↩️ Sale cancelled & stock restored!', 'success');
+
+  // Refresh current view
+  if (state.currentPage === 'home') renderHome();
+  else if (state.currentPage === 'pos') renderPOS();
+  else if (state.currentPage === 'inventory') renderInventory();
+  else if (state.currentPage === 'analytics') renderAnalytics();
+}
+
+// ===================================================
 // MODAL HELPERS
 // ===================================================
 function openModal(id)  { document.getElementById(id).classList.add('open'); }
@@ -698,6 +785,13 @@ function initEvents() {
   document.getElementById('closeExcelModal').addEventListener('click', () => closeModal('excelModal'));
   document.getElementById('cancelExcelModal').addEventListener('click', () => closeModal('excelModal'));
   document.getElementById('downloadExcelBtn').addEventListener('click', generateExcelReport);
+
+  // Undo Sale Events
+  const undoLastBtn = document.getElementById('undoLastBtn');
+  if (undoLastBtn) undoLastBtn.addEventListener('click', undoLastSale);
+  document.getElementById('closeUndoModal').addEventListener('click', () => closeModal('undoModal'));
+  document.getElementById('cancelUndoModal').addEventListener('click', () => closeModal('undoModal'));
+  document.getElementById('confirmUndoBtn').addEventListener('click', confirmUndoSale);
 
   document.querySelectorAll('.modal-overlay').forEach(overlay => {
     overlay.addEventListener('click', e => {

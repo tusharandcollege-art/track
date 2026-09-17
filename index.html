@@ -105,7 +105,10 @@
           </div>
 
           <!-- Recent Transactions -->
-          <div class="section-title">Recent Transactions</div>
+          <div class="section-title-row">
+            <span class="section-title" style="margin:0">Recent Transactions</span>
+            <button class="undo-last-btn" id="undoLastBtn">↩️ Undo Last</button>
+          </div>
           <div id="recentTxnList" class="txn-list">
             <div class="empty-state">No transactions yet.<br>Go to POS to make a sale!</div>
           </div>
@@ -398,6 +401,27 @@
       <div class="modal-footer">
         <button class="btn-secondary" id="cancelExcelModal">Cancel</button>
         <button class="btn-excel" id="downloadExcelBtn">⬇️ Download .xlsx</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== UNDO SALE MODAL ===== -->
+  <div class="modal-overlay" id="undoModal">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h3>↩️ Cancel Sale</h3>
+        <button class="modal-close" id="closeUndoModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="undo-warning-banner">
+          ⚠️ This will reverse the sale and restore all items back to inventory.
+        </div>
+        <div id="undoSaleDetails" class="undo-sale-details"></div>
+        <input type="hidden" id="undoTxnId" />
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" id="cancelUndoModal">Keep Sale</button>
+        <button class="btn-danger" id="confirmUndoBtn">↩️ Yes, Cancel Sale</button>
       </div>
     </div>
   </div>
