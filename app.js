@@ -10,7 +10,6 @@
 // ===================================================
 const DB_PRODUCTS  = 'shoptrack_products';
 const DB_TXN       = 'shoptrack_txn';
-const DB_SETTINGS  = 'shoptrack_settings';
 
 let state = {
   products: [],
@@ -21,21 +20,17 @@ let state = {
   inventoryFilter: 'all',
   editingProductId: null,
   restockProductId: null,
-  settings: { theme: 'dark' }
 };
 
 function saveProducts()     { localStorage.setItem(DB_PRODUCTS, JSON.stringify(state.products)); }
 function saveTxn()          { localStorage.setItem(DB_TXN, JSON.stringify(state.transactions)); }
-function saveSettings()     { localStorage.setItem(DB_SETTINGS, JSON.stringify(state.settings)); }
 
 function loadData() {
   try {
     const p = localStorage.getItem(DB_PRODUCTS);
     const t = localStorage.getItem(DB_TXN);
-    const s = localStorage.getItem(DB_SETTINGS);
     if (p) state.products = JSON.parse(p);
     if (t) state.transactions = JSON.parse(t);
-    if (s) state.settings = JSON.parse(s);
   } catch(e) { console.warn('Load error', e); }
 }
 
@@ -634,34 +629,12 @@ function openModal(id)  { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 
 // ===================================================
-// THEME TOGGLE
-// ===================================================
-function toggleTheme() {
-  state.settings.theme = state.settings.theme === 'dark' ? 'light' : 'dark';
-  applyTheme();
-  saveSettings();
-}
-
-function applyTheme() {
-  const btn = document.getElementById('themeToggle');
-  if (state.settings.theme === 'light') {
-    document.documentElement.setAttribute('data-theme', 'light');
-    if (btn) btn.textContent = '☀️';
-  } else {
-    document.documentElement.removeAttribute('data-theme');
-    if (btn) btn.textContent = '🌙';
-  }
-}
-
-// ===================================================
 // EVENT LISTENERS
 // ===================================================
 function initEvents() {
   document.querySelectorAll('.nav-btn').forEach(btn => {
     btn.addEventListener('click', () => navigateTo(btn.dataset.page));
   });
-
-  document.getElementById('themeToggle').addEventListener('click', toggleTheme);
 
   document.getElementById('productSearch').addEventListener('input', e => {
     renderProductGrid(e.target.value);
@@ -1284,7 +1257,6 @@ function autoColWidth(ws) {
 function init() {
   loadData();
   seedSampleData();
-  applyTheme();
   initEvents();
   updateClock();
   setInterval(updateClock, 30000);
