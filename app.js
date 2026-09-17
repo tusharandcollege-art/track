@@ -27,12 +27,12 @@ let state = {
 // FIREBASE AUTH & FIRESTORE INTEGRATION
 // ===================================================
 const firebaseConfig = {
-  apiKey: "AIzaSyDemoShopTrackKeyForFirebase123",
-  authDomain: "shoptrack-app.firebaseapp.com",
-  projectId: "shoptrack-app",
-  storageBucket: "shoptrack-app.appspot.com",
-  messagingSenderId: "1234567890",
-  appId: "1:1234567890:web:abcdef123456"
+  apiKey: "AIzaSyDExdK7v6mP-x9CdRUMceUNjkvupnJtVr8",
+  authDomain: "seedance-app.firebaseapp.com",
+  projectId: "seedance-app",
+  storageBucket: "seedance-app.firebasestorage.app",
+  messagingSenderId: "455714900154",
+  appId: "1:455714900154:web:c3ecf76b3f2f7305be1a83"
 };
 
 let db = null;
