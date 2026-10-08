@@ -443,7 +443,7 @@ function deleteCustomArtisanField(id) {
 }
 
 // ===================================================
-// MODAL HELPERS
+// MODAL HELPERS & SELECT POPULATION
 // ===================================================
 function openModal(id) {
   populateSelectDropdowns();
@@ -456,7 +456,28 @@ function openModal(id) {
   document.getElementById(id).classList.add('open');
 }
 
+function openVillageDispatchModal(villageId) {
+  openModal('dispatchMaterialModal');
+  const vSel = document.getElementById('dispatchVillageSelect');
+  if (vSel && villageId) {
+    vSel.value = villageId;
+    onDispatchVillageChange();
+  }
+}
+
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function onDispatchVillageChange() {
+  const vilSel = document.getElementById('dispatchVillageSelect');
+  const dArt = document.getElementById('dispatchArtisanSelect');
+  if (!vilSel || !dArt) return;
+
+  const vilId = vilSel.value;
+  const villageArtisans = state.artisans.filter(a => a.villageId === vilId);
+  let options = '<option value="">-- General Village Stock (No specific artisan) --</option>';
+  options += villageArtisans.map(a => `<option value="${a.id}">👩‍🎨 ${a.name}</option>`).join('');
+  dArt.innerHTML = options;
+}
 
 function populateSelectDropdowns() {
   const artV = document.getElementById('artVillageSelect');
@@ -464,20 +485,30 @@ function populateSelectDropdowns() {
     artV.innerHTML = state.villages.map(v => `<option value="${v.id}">${v.name} (${v.district || 'Region'})</option>`).join('');
   }
 
-  const dMat = document.getElementById('dispatchMaterialSelect');
-  if (dMat) {
-    dMat.innerHTML = state.rawMaterials.map(m => `<option value="${m.id}">${m.name} (${m.plantStock} ${m.unit} in Plant)</option>`).join('');
+  const dVil = document.getElementById('dispatchVillageSelect');
+  if (dVil) {
+    dVil.innerHTML = state.villages.map(v => `<option value="${v.id}">🏡 ${v.name} (${v.district || 'Region'})</option>`).join('');
   }
 
-  const dArt = document.getElementById('dispatchArtisanSelect');
-  const pArt = document.getElementById('prodArtisanSelect');
-  const artisanOptions = state.artisans.map(a => {
-    const v = getVillageById(a.villageId);
-    return `<option value="${a.id}">${a.name} - ${v ? v.name : 'Village'} (${a.craft || 'Artisan'})</option>`;
-  }).join('');
+  const dMat = document.getElementById('dispatchMaterialSelect');
+  if (dMat) {
+    if (state.rawMaterials.length === 0) {
+      dMat.innerHTML = '<option value="">⚠️ No raw materials in Plant stock! Add material under Material & Production tab first.</option>';
+    } else {
+      dMat.innerHTML = state.rawMaterials.map(m => `<option value="${m.id}">${m.name} (${m.plantStock} ${m.unit} in Plant)</option>`).join('');
+    }
+  }
 
-  if (dArt) dArt.innerHTML = artisanOptions || '<option value="">No artisans registered yet</option>';
-  if (pArt) pArt.innerHTML = artisanOptions || '<option value="">No artisans registered yet</option>';
+  onDispatchVillageChange();
+
+  const pArt = document.getElementById('prodArtisanSelect');
+  if (pArt) {
+    const artisanOptions = state.artisans.map(a => {
+      const v = getVillageById(a.villageId);
+      return `<option value="${a.id}">${a.name} - ${v ? v.name : 'Village'}</option>`;
+    }).join('');
+    pArt.innerHTML = artisanOptions || '<option value="">No artisans registered yet</option>';
+  }
 }
 
 // ===================================================
@@ -578,10 +609,13 @@ function renderHome() {
       return `
         <div class="village-card">
           <div class="village-title-row">
-            <span class="village-name">🏡 ${v.name}</span>
-            <span class="artisan-village-tag">${v.district || 'Region'}</span>
+            <div>
+              <span class="village-name">🏡 ${v.name}</span>
+              <span class="artisan-village-tag" style="margin-left:6px">${v.district || 'Region'}</span>
+            </div>
+            <button class="btn-primary" style="padding:4px 10px;font-size:12px;border-radius:6px;" onclick="openVillageDispatchModal('${v.id}')">🚚 + Dispatch Material</button>
           </div>
-          <div class="village-stats-flex">
+          <div class="village-stats-flex" style="margin-top:8px">
             <div class="village-stat-item" style="grid-column:1/-1">
               Artisans: <strong>${vArtisans.length} women registered</strong>
             </div>
@@ -668,7 +702,10 @@ function renderVillagesAndArtisans() {
               <span class="village-name">🏡 ${v.name}</span>
               <span class="artisan-village-tag" style="margin-left:6px">${v.district || 'Region'}</span>
             </div>
-            <button class="inv-btn edit" onclick="deleteVillage('${v.id}')">🗑️ Delete</button>
+            <div style="display:flex;gap:6px">
+              <button class="btn-primary" style="padding:4px 10px;font-size:12px;border-radius:6px;" onclick="openVillageDispatchModal('${v.id}')">🚚 + Dispatch Material</button>
+              <button class="inv-btn edit" onclick="deleteVillage('${v.id}')">🗑️</button>
+            </div>
           </div>
           <div class="village-stats-flex" style="margin-top:8px">
             <div class="village-stat-item" style="grid-column:1/-1">
@@ -864,6 +901,8 @@ function renderMaterialAndCrafting() {
       const mat = getRawMaterialById(d.materialId);
       const art = getArtisanById(d.artisanId);
       const vil = getVillageById(d.villageId);
+      const recipientStr = art ? art.name : (vil ? `Village ${vil.name}` : 'Village');
+
       return `
         <div class="dispatch-card">
           <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text3)">
@@ -874,7 +913,7 @@ function renderMaterialAndCrafting() {
             ${d.qty} ${mat ? mat.unit : 'units'} of ${mat ? mat.name : 'Material'}
           </div>
           <div style="font-size:13px;color:var(--text2)">
-            Recipient: <strong>${art ? art.name : 'Artisan'}</strong> (🏡 <strong>${vil ? vil.name : 'Village'}</strong>)
+            Recipient: <strong>${recipientStr}</strong> (🏡 <strong>${vil ? vil.name : 'Village'}</strong>)
           </div>
         </div>
       `;
@@ -928,17 +967,19 @@ function saveRawMaterial() {
 
 function confirmDispatchMaterial() {
   const materialId = document.getElementById('dispatchMaterialSelect').value;
+  const villageId = document.getElementById('dispatchVillageSelect').value;
   const artisanId = document.getElementById('dispatchArtisanSelect').value;
   const qty = parseFloat(document.getElementById('dispatchQty').value);
 
-  if (!materialId || !artisanId || isNaN(qty) || qty <= 0) {
-    showToast('Select material, artisan, and valid quantity', 'error');
+  if (!materialId || !villageId || isNaN(qty) || qty <= 0) {
+    showToast('Select material, target village, and valid quantity', 'error');
     return;
   }
 
   const mat = getRawMaterialById(materialId);
-  const art = getArtisanById(artisanId);
-  if (!mat || !art) return;
+  const vil = getVillageById(villageId);
+  const art = artisanId ? getArtisanById(artisanId) : null;
+  if (!mat || !vil) return;
 
   if (mat.plantStock < qty) {
     showToast(`Only ${mat.plantStock} ${mat.unit} available in plant stock!`, 'warning');
@@ -949,8 +990,8 @@ function confirmDispatchMaterial() {
   state.dispatches.push({
     id: uid(),
     materialId,
-    villageId: art.villageId,
-    artisanId,
+    villageId: villageId,
+    artisanId: artisanId || null,
     qty,
     ts: Date.now()
   });
@@ -958,8 +999,9 @@ function confirmDispatchMaterial() {
   saveAllData();
   closeModal('dispatchMaterialModal');
   document.getElementById('dispatchQty').value = '';
-  showToast(`🚚 ${qty} ${mat.unit} dispatched to ${art.name}!`, 'success');
-  renderMaterialAndCrafting();
+  const recipientStr = art ? art.name : `Village ${vil.name}`;
+  showToast(`🚚 ${qty} ${mat.unit} dispatched to ${recipientStr}!`, 'success');
+  refreshCurrentPage();
 }
 
 function confirmLogProduction() {
@@ -1535,17 +1577,18 @@ function generateHastkalaExcelReport() {
   // Sheet 4: Raw Material Dispatches
   if (document.getElementById('sheetMaterials').checked) {
     const mRows = [
-      ['Date & Time', 'Raw Material', 'Quantity Dispatched', 'Recipient Artisan', 'Village']
+      ['Date & Time', 'Raw Material', 'Quantity Dispatched', 'Recipient Artisan / Village', 'Village']
     ];
     state.dispatches.forEach(d => {
       const mat = getRawMaterialById(d.materialId);
       const art = getArtisanById(d.artisanId);
       const vil = getVillageById(d.villageId);
+      const recipientStr = art ? art.name : (vil ? `Village ${vil.name}` : '');
       mRows.push([
         new Date(d.ts).toLocaleString('en-IN'),
         mat ? mat.name : '',
         `${d.qty} ${mat ? mat.unit : ''}`,
-        art ? art.name : '',
+        recipientStr,
         vil ? vil.name : ''
       ]);
     });
@@ -1597,7 +1640,7 @@ function generateHastkalaExcelReport() {
   }
 
   const stamp = new Date().toISOString().slice(0, 10);
-  XLSX.writeFile(wb, `Hastkala_Report_${stamp}.xlsx`);
+  XLSX.writeFile(wb, `Hastkala_Report_${stamp}.toISOString().slice(0, 10)}.xlsx`);
   closeModal('excelModal');
   showToast('📊 Hastkala .xlsx report downloaded!', 'success');
 }
