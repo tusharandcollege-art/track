@@ -359,6 +359,28 @@ function getVillageProductionBreakdown(villageId) {
   return Object.entries(prodTotals).map(([name, qty]) => `${qty}x ${name}`).join(', ');
 }
 
+// Village Store POS Inventory Stock Breakdown
+function getVillagePOSStock(villageId) {
+  const vProds = state.products.filter(p => p.villageId === villageId && p.stock > 0);
+  if (vProds.length === 0) return '0 items in POS store';
+  return vProds.map(p => `${p.stock}x ${p.emoji || '📦'} ${p.name}`).join(', ');
+}
+
+// Village Total POS Sales Earned
+function getVillageTotalSales(villageId) {
+  let rev = 0;
+  (state.transactions || []).forEach(t => {
+    if (t.items) {
+      t.items.forEach(i => {
+        if (i.villageId === villageId) {
+          rev += ((i.price || 0) * (i.qty || 0));
+        }
+      });
+    }
+  });
+  return rev;
+}
+
 // ===================================================
 // TOAST NOTIFICATIONS
 // ===================================================
@@ -463,6 +485,75 @@ function openVillageDispatchModal(villageId) {
     vSel.value = villageId;
     onDispatchVillageChange();
   }
+}
+
+function openVillageProductionModal(villageId) {
+  openModal('logProductionModal');
+  const pArt = document.getElementById('prodArtisanSelect');
+  if (pArt && villageId) {
+    const vArtisans = state.artisans.filter(a => a.villageId === villageId);
+    if (vArtisans.length === 0) {
+      const v = getVillageById(villageId);
+      showToast(`No women artisans registered in ${v ? v.name : 'this village'} yet. Register an artisan first!`, 'warning');
+      pArt.innerHTML = '<option value="">No artisans registered in this village</option>';
+      return;
+    }
+    const v = getVillageById(villageId);
+    let html = `<optgroup label="🏡 ${v ? v.name : 'Village'} Artisans">` +
+      vArtisans.map(a => `<option value="${a.id}">👩‍🎨 ${a.name}</option>`).join('') +
+      `</optgroup>`;
+
+    const otherArtisans = state.artisans.filter(a => a.villageId !== villageId);
+    if (otherArtisans.length > 0) {
+      html += `<optgroup label="Other Villages">` +
+        otherArtisans.map(a => {
+          const ov = getVillageById(a.villageId);
+          return `<option value="${a.id}">👩‍🎨 ${a.name} (${ov ? ov.name : 'Village'})</option>`;
+        }).join('') + `</optgroup>`;
+    }
+    pArt.innerHTML = html;
+  }
+}
+
+function buildVillageCard(v, showDelete = false) {
+  const vArtisans = state.artisans.filter(a => a.villageId === v.id);
+  const matBreakdown = getVillageMaterialBreakdown(v.id);
+  const prodBreakdown = getVillageProductionBreakdown(v.id);
+  const posStockBreakdown = getVillagePOSStock(v.id);
+  const vSalesRev = getVillageTotalSales(v.id);
+
+  return `
+    <div class="village-card">
+      <div class="village-title-row">
+        <div>
+          <span class="village-name">🏡 ${v.name}</span>
+          <span class="artisan-village-tag" style="margin-left:6px">${v.district || 'Region'}</span>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn-primary" style="padding:4px 8px;font-size:11px;border-radius:6px;" onclick="openVillageDispatchModal('${v.id}')">🚚 Dispatch Raw Material</button>
+          <button class="btn-secondary" style="padding:4px 8px;font-size:11px;border-radius:6px;" onclick="openVillageProductionModal('${v.id}')">🔨 Log Finished Product</button>
+          ${showDelete ? `<button class="inv-btn edit" onclick="deleteVillage('${v.id}')" title="Delete Village">🗑️</button>` : ''}
+        </div>
+      </div>
+      <div class="village-stats-flex" style="margin-top:10px">
+        <div class="village-stat-item" style="grid-column:1/-1">
+          👩‍🎨 Artisans Registered: <strong>${vArtisans.length} women</strong>
+        </div>
+        <div class="village-stat-item" style="grid-column:1/-1">
+          🧵 Raw Material Dispatched: <strong style="color:var(--accent2);">${matBreakdown}</strong>
+        </div>
+        <div class="village-stat-item" style="grid-column:1/-1">
+          🔨 Craft Yield (Total Produced): <strong style="color:var(--text);">${prodBreakdown}</strong>
+        </div>
+        <div class="village-stat-item" style="grid-column:1/-1">
+          🏬 POS Store Stock (Ready to Sell): <strong style="color:var(--blue);">${posStockBreakdown}</strong>
+        </div>
+        <div class="village-stat-item" style="grid-column:1/-1">
+          💰 POS Sales Earned: <strong style="color:var(--green);">${formatCurrency(vSalesRev)}</strong>
+        </div>
+      </div>
+    </div>
+  `;
 }
 
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
@@ -601,34 +692,7 @@ function renderHome() {
   if (state.villages.length === 0) {
     homeVillageList.innerHTML = '<div class="empty-state">No villages added yet. Go to Villages tab to add!</div>';
   } else {
-    homeVillageList.innerHTML = state.villages.map(v => {
-      const vArtisans = state.artisans.filter(a => a.villageId === v.id);
-      const matBreakdown = getVillageMaterialBreakdown(v.id);
-      const prodBreakdown = getVillageProductionBreakdown(v.id);
-
-      return `
-        <div class="village-card">
-          <div class="village-title-row">
-            <div>
-              <span class="village-name">🏡 ${v.name}</span>
-              <span class="artisan-village-tag" style="margin-left:6px">${v.district || 'Region'}</span>
-            </div>
-            <button class="btn-primary" style="padding:4px 10px;font-size:12px;border-radius:6px;" onclick="openVillageDispatchModal('${v.id}')">🚚 + Dispatch Material</button>
-          </div>
-          <div class="village-stats-flex" style="margin-top:8px">
-            <div class="village-stat-item" style="grid-column:1/-1">
-              Artisans: <strong>${vArtisans.length} women registered</strong>
-            </div>
-            <div class="village-stat-item" style="grid-column:1/-1">
-              🧵 Raw Material Dispatched: <strong style="color:var(--accent2);">${matBreakdown}</strong>
-            </div>
-            <div class="village-stat-item" style="grid-column:1/-1">
-              🔨 Items Produced: <strong style="color:var(--green);">${prodBreakdown}</strong>
-            </div>
-          </div>
-        </div>
-      `;
-    }).join('');
+    homeVillageList.innerHTML = state.villages.map(v => buildVillageCard(v, false)).join('');
   }
 
   // Recent Store Sales
@@ -690,37 +754,7 @@ function renderVillagesAndArtisans() {
   if (state.villages.length === 0) {
     vList.innerHTML = '<div class="empty-state">No villages configured.<br>Click "+ Add Village" above!</div>';
   } else {
-    vList.innerHTML = state.villages.map(v => {
-      const vArtisans = state.artisans.filter(a => a.villageId === v.id);
-      const matBreakdown = getVillageMaterialBreakdown(v.id);
-      const prodBreakdown = getVillageProductionBreakdown(v.id);
-
-      return `
-        <div class="village-card">
-          <div class="village-title-row">
-            <div>
-              <span class="village-name">🏡 ${v.name}</span>
-              <span class="artisan-village-tag" style="margin-left:6px">${v.district || 'Region'}</span>
-            </div>
-            <div style="display:flex;gap:6px">
-              <button class="btn-primary" style="padding:4px 10px;font-size:12px;border-radius:6px;" onclick="openVillageDispatchModal('${v.id}')">🚚 + Dispatch Material</button>
-              <button class="inv-btn edit" onclick="deleteVillage('${v.id}')">🗑️</button>
-            </div>
-          </div>
-          <div class="village-stats-flex" style="margin-top:8px">
-            <div class="village-stat-item" style="grid-column:1/-1">
-              Artisans Registered: <strong>${vArtisans.length} women</strong>
-            </div>
-            <div class="village-stat-item" style="grid-column:1/-1">
-              🧵 Raw Material Dispatched: <strong style="color:var(--accent2);">${matBreakdown}</strong>
-            </div>
-            <div class="village-stat-item" style="grid-column:1/-1">
-              🔨 Items Produced: <strong style="color:var(--green);">${prodBreakdown}</strong>
-            </div>
-          </div>
-        </div>
-      `;
-    }).join('');
+    vList.innerHTML = state.villages.map(v => buildVillageCard(v, true)).join('');
   }
 
   // Render Artisan Village Filter Chips
@@ -1526,12 +1560,13 @@ function generateHastkalaExcelReport() {
   // Sheet 2: Village Performance
   if (document.getElementById('sheetVillages').checked) {
     const vRows = [
-      ['Village ID', 'Village Name', 'District / Region', 'Women Artisans Count', 'Raw Material Breakdown', 'Items Produced Breakdown', 'Total Units Produced', 'Attributed Sales Revenue']
+      ['Village ID', 'Village Name', 'District / Region', 'Women Artisans Count', 'Raw Material Breakdown', 'Craft Yield Breakdown', 'Total Units Produced', 'POS Store Stock Breakdown', 'Attributed Sales Revenue']
     ];
     state.villages.forEach(v => {
       const vArts = state.artisans.filter(a => a.villageId === v.id);
       const matBreakdown = getVillageMaterialBreakdown(v.id);
       const prodBreakdown = getVillageProductionBreakdown(v.id);
+      const posStockBreakdown = getVillagePOSStock(v.id);
 
       const vProd = state.productionLogs.filter(pr => pr.villageId === v.id);
       let itemsCrafted = 0;
@@ -1539,12 +1574,14 @@ function generateHastkalaExcelReport() {
 
       let vRev = 0;
       txns.forEach(t => {
-        t.items.forEach(i => {
-          if (i.villageId === v.id) vRev += (i.price * i.qty);
-        });
+        if (t.items) {
+          t.items.forEach(i => {
+            if (i.villageId === v.id) vRev += (i.price * i.qty);
+          });
+        }
       });
 
-      vRows.push([v.id, v.name, v.district || 'Region', vArts.length, matBreakdown, prodBreakdown, itemsCrafted, r2(vRev)]);
+      vRows.push([v.id, v.name, v.district || 'Region', vArts.length, matBreakdown, prodBreakdown, itemsCrafted, posStockBreakdown, r2(vRev)]);
     });
     const ws = XLSX.utils.aoa_to_sheet(vRows);
     XLSX.utils.book_append_sheet(wb, ws, '🏡 Village Performance');
