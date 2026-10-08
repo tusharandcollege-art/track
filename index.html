@@ -553,6 +553,25 @@
           <span>Total Sale Amount</span>
           <span id="checkoutTotalDisplay" class="checkout-total-val">₹0.00</span>
         </div>
+
+        <div class="form-group" style="margin-top:14px;">
+          <label style="font-size:12px;font-weight:700;color:var(--text2);">👤 CUSTOMER NAME</label>
+          <input type="text" id="custNameInput" placeholder="e.g. Rahul Sharma (Optional)" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);font-size:14px;" />
+        </div>
+
+        <div class="form-group" style="margin-top:12px;">
+          <label style="font-size:12px;font-weight:700;color:var(--text2);">💳 PAYMENT MODE *</label>
+          <div style="display:flex;gap:8px;margin-top:6px;">
+            <label style="flex:1;cursor:pointer;padding:10px 12px;border:1px solid var(--border);border-radius:10px;display:flex;align-items:center;background:var(--bg2);">
+              <input type="radio" name="paymentMode" value="Cash" checked />
+              <span style="font-size:13px;font-weight:700;margin-left:8px;color:var(--green)">💵 Cash</span>
+            </label>
+            <label style="flex:1;cursor:pointer;padding:10px 12px;border:1px solid var(--border);border-radius:10px;display:flex;align-items:center;background:var(--bg2);">
+              <input type="radio" name="paymentMode" value="UPI" />
+              <span style="font-size:13px;font-weight:700;margin-left:8px;color:var(--blue)">📱 UPI</span>
+            </label>
+          </div>
+        </div>
       </div>
       <div class="modal-footer">
         <button class="btn-secondary" id="cancelCheckout">Cancel</button>

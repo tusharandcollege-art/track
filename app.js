@@ -256,7 +256,9 @@ function seedSampleData() {
 
     state.dispatches = [
       { id: uid(), materialId: state.rawMaterials[1].id, villageId: v1, artisanId: a1, qty: 25, ts: Date.now() - 86400000 * 3 },
-      { id: uid(), materialId: state.rawMaterials[0].id, villageId: v2, artisanId: a2, qty: 15, ts: Date.now() - 86400000 * 2 }
+      { id: uid(), materialId: state.rawMaterials[0].id, villageId: v1, artisanId: a1, qty: 10, ts: Date.now() - 86400000 * 2 },
+      { id: uid(), materialId: state.rawMaterials[0].id, villageId: v2, artisanId: a2, qty: 15, ts: Date.now() - 86400000 * 2 },
+      { id: uid(), materialId: state.rawMaterials[2].id, villageId: v3, artisanId: a3, qty: 50, ts: Date.now() - 86400000 * 1 }
     ];
 
     state.productionLogs = [
@@ -306,10 +308,26 @@ function getFilteredTxn(period) {
   }
   return state.transactions;
 }
+
 function getVillageById(id) { return state.villages.find(v => v.id === id); }
 function getArtisanById(id) { return state.artisans.find(a => a.id === id); }
 function getRawMaterialById(id) { return state.rawMaterials.find(m => m.id === id); }
 function getProductById(id) { return state.products.find(p => p.id === id); }
+
+// Village Raw Material Breakdown
+function getVillageMaterialBreakdown(villageId) {
+  const vDispatches = state.dispatches.filter(d => d.villageId === villageId);
+  if (vDispatches.length === 0) return 'No raw material received yet';
+  const matTotals = {};
+  vDispatches.forEach(d => {
+    const mat = getRawMaterialById(d.materialId);
+    const name = mat ? mat.name : 'Material';
+    const unit = mat ? mat.unit : 'units';
+    const key = `${name} (${unit})`;
+    matTotals[key] = (matTotals[key] || 0) + Number(d.qty);
+  });
+  return Object.entries(matTotals).map(([mat, qty]) => `${r2(qty)} ${mat}`).join(', ');
+}
 
 // ===================================================
 // TOAST NOTIFICATIONS
@@ -426,26 +444,30 @@ function renderHome() {
   document.getElementById('todayRevenue').textContent = formatCurrency(todayRev);
 
   let allRev = 0, allProfit = 0, allCost = 0;
+  let cashRev = 0, upiRev = 0;
+
   allTxn.forEach(t => {
     allRev += t.total;
     allProfit += t.profit;
     allCost += (t.total - t.profit);
+
+    if (t.paymentMode === 'UPI') upiRev += t.total;
+    else cashRev += t.total;
   });
+
   document.getElementById('allRevenue').textContent = formatCurrency(allRev);
   document.getElementById('allCost').textContent = formatCurrency(allCost);
   document.getElementById('allProfit').textContent = formatCurrency(allProfit);
-  document.getElementById('allTxn').textContent = allTxn.length;
+  document.getElementById('allTxn').textContent = `${allTxn.length} (💵 Cash: ${formatCurrency(cashRev)} | 📱 UPI: ${formatCurrency(upiRev)})`;
 
-  // Render Village Cards on Dashboard
+  // Render Village Raw Material Cards on Dashboard
   const homeVillageList = document.getElementById('homeVillageList');
   if (state.villages.length === 0) {
     homeVillageList.innerHTML = '<div class="empty-state">No villages added yet. Go to Villages tab to add!</div>';
   } else {
     homeVillageList.innerHTML = state.villages.map(v => {
       const vArtisans = state.artisans.filter(a => a.villageId === v.id);
-      const vDispatches = state.dispatches.filter(d => d.villageId === v.id);
-      let matReceived = 0;
-      vDispatches.forEach(d => matReceived += Number(d.qty));
+      const matBreakdown = getVillageMaterialBreakdown(v.id);
 
       const vProds = state.productionLogs.filter(pr => pr.villageId === v.id);
       let unitsCrafted = 0;
@@ -462,10 +484,10 @@ function renderHome() {
               Artisans: <strong>${vArtisans.length} women</strong>
             </div>
             <div class="village-stat-item">
-              Raw Mat Received: <strong>${r2(matReceived)} units</strong>
+              Craft Output: <strong>${unitsCrafted} units produced</strong>
             </div>
             <div class="village-stat-item" style="grid-column:1/-1">
-              Craft Output: <strong>${unitsCrafted} units produced</strong>
+              Raw Material Dispatched: <strong style="color:var(--accent2);">${matBreakdown}</strong>
             </div>
           </div>
         </div>
@@ -491,9 +513,18 @@ function renderHome() {
 
 function buildTxnCard(t) {
   const itemList = t.items.map(i => `${i.qty}x ${i.name}`).join(', ');
+  const custName = t.customerName || 'Walk-in Customer';
+  const payMode = t.paymentMode || 'Cash';
+  const payBadge = payMode === 'UPI' ? '📱 UPI' : '💵 Cash';
+  const payColor = payMode === 'UPI' ? 'var(--blue)' : 'var(--green)';
+
   return `
     <div class="txn-card">
       <div class="txn-left">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+          <span style="font-size:11px;font-weight:700;color:${payColor};background:var(--card2);padding:2px 6px;border-radius:6px;border:1px solid var(--border)">${payBadge}</span>
+          <span style="font-size:13px;font-weight:700;color:var(--text)">👤 ${custName}</span>
+        </div>
         <div class="txn-time">${formatTime(t.ts)}</div>
         <div class="txn-items">${itemList}</div>
       </div>
@@ -525,9 +556,7 @@ function renderVillagesAndArtisans() {
   } else {
     vList.innerHTML = state.villages.map(v => {
       const vArtisans = state.artisans.filter(a => a.villageId === v.id);
-      const vDispatches = state.dispatches.filter(d => d.villageId === v.id);
-      let matTotal = 0;
-      vDispatches.forEach(d => matTotal += Number(d.qty));
+      const matBreakdown = getVillageMaterialBreakdown(v.id);
 
       const vProds = state.productionLogs.filter(pr => pr.villageId === v.id);
       let unitsProduced = 0;
@@ -547,10 +576,10 @@ function renderVillagesAndArtisans() {
               Artisans Registered: <strong>${vArtisans.length} women</strong>
             </div>
             <div class="village-stat-item">
-              Raw Material Input: <strong>${r2(matTotal)} units</strong>
+              Craft Output: <strong>${unitsProduced} finished products</strong>
             </div>
             <div class="village-stat-item" style="grid-column:1/-1">
-              Craft Output: <strong>${unitsProduced} finished products</strong>
+              Raw Material Dispatched: <strong style="color:var(--accent2);">${matBreakdown}</strong>
             </div>
           </div>
         </div>
@@ -722,14 +751,14 @@ function renderMaterialAndCrafting() {
       return `
         <div class="dispatch-card">
           <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text3)">
-            <span>🚚 DISPATCH LOG</span>
+            <span>🚚 RAW MATERIAL DISPATCH</span>
             <span>${formatTime(d.ts)}</span>
           </div>
-          <div style="font-size:15px;font-weight:700;margin-top:2px">
+          <div style="font-size:15px;font-weight:700;margin-top:2px;color:var(--accent2)">
             ${d.qty} ${mat ? mat.unit : 'units'} of ${mat ? mat.name : 'Material'}
           </div>
           <div style="font-size:13px;color:var(--text2)">
-            Recipient: <strong>${art ? art.name : 'Artisan'}</strong> (🏡 ${vil ? vil.name : 'Village'})
+            Recipient: <strong>${art ? art.name : 'Artisan'}</strong> (🏡 <strong>${vil ? vil.name : 'Village'}</strong>)
           </div>
         </div>
       `;
@@ -1035,6 +1064,11 @@ function confirmSale() {
   let total = 0, profit = 0;
   const items = [];
 
+  const custNameInput = document.getElementById('custNameInput');
+  const customerName = (custNameInput && custNameInput.value.trim()) ? custNameInput.value.trim() : 'Walk-in Customer';
+  const payRadio = document.querySelector('input[name="paymentMode"]:checked');
+  const paymentMode = payRadio ? payRadio.value : 'Cash';
+
   state.cart.forEach(c => {
     const p = getProductById(c.id);
     if (!p) return;
@@ -1058,14 +1092,16 @@ function confirmSale() {
     });
   });
 
-  const txn = { id: uid(), ts: Date.now(), items, total, profit };
+  const txn = { id: uid(), ts: Date.now(), items, total, profit, customerName, paymentMode };
   state.transactions.push(txn);
   state.cart = [];
+
+  if (custNameInput) custNameInput.value = '';
 
   saveAllData();
   closeModal('checkoutModal');
   renderPOS();
-  showToast(`✅ Store sale recorded! ₹${total.toFixed(2)} earned`, 'success');
+  showToast(`✅ Store sale recorded! ₹${total.toFixed(2)} (${paymentMode})`, 'success');
 }
 
 // ===================================================
@@ -1096,6 +1132,7 @@ function openUndoModal(txnId) {
 
   document.getElementById('undoSaleDetails').innerHTML = `
     <div class="undo-detail-time">📅 ${new Date(txn.ts).toLocaleString()}</div>
+    <div style="font-size:13px;font-weight:700;color:var(--text);margin-top:2px;">👤 ${txn.customerName || 'Walk-in Customer'} (${txn.paymentMode || 'Cash'})</div>
     ${itemsHtml}
     <div class="undo-detail-total">
       <span>Total to Refund</span>
@@ -1294,8 +1331,13 @@ function generateHastkalaExcelReport() {
 
   // Sheet 1: Executive Summary
   if (document.getElementById('sheetSummary').checked) {
-    let rev = 0, profit = 0;
-    txns.forEach(t => { rev += t.total; profit += t.profit; });
+    let rev = 0, profit = 0, cashTot = 0, upiTot = 0;
+    txns.forEach(t => {
+      rev += t.total;
+      profit += t.profit;
+      if (t.paymentMode === 'UPI') upiTot += t.total;
+      else cashTot += t.total;
+    });
     const summaryData = [
       ['🪡 HASTKALA RURAL ARTISAN & POS REPORT'],
       [`Report Period: ${period.toUpperCase()}`, `Generated: ${new Date().toLocaleString('en-IN')}`],
@@ -1306,6 +1348,8 @@ function generateHastkalaExcelReport() {
       ['Total Plant Raw Material Types', state.rawMaterials.length],
       ['Total Craft Production Logs', state.productionLogs.length],
       ['Total POS Sales Revenue', r2(rev)],
+      ['💵 Total Cash Revenue', r2(cashTot)],
+      ['📱 Total UPI Revenue', r2(upiTot)],
       ['Total Net Earnings / Profit', r2(profit)],
       ['Total POS Transactions', txns.length]
     ];
@@ -1316,13 +1360,11 @@ function generateHastkalaExcelReport() {
   // Sheet 2: Village Performance
   if (document.getElementById('sheetVillages').checked) {
     const vRows = [
-      ['Village ID', 'Village Name', 'District / Region', 'Women Artisans Count', 'Material Received (units)', 'Finished Items Produced', 'Attributed Sales Revenue']
+      ['Village ID', 'Village Name', 'District / Region', 'Women Artisans Count', 'Raw Material Breakdown', 'Finished Items Produced', 'Attributed Sales Revenue']
     ];
     state.villages.forEach(v => {
       const vArts = state.artisans.filter(a => a.villageId === v.id);
-      const vDisp = state.dispatches.filter(d => d.villageId === v.id);
-      let matRec = 0;
-      vDisp.forEach(d => matRec += Number(d.qty));
+      const matBreakdown = getVillageMaterialBreakdown(v.id);
 
       const vProd = state.productionLogs.filter(pr => pr.villageId === v.id);
       let itemsCrafted = 0;
@@ -1335,7 +1377,7 @@ function generateHastkalaExcelReport() {
         });
       });
 
-      vRows.push([v.id, v.name, v.district || 'Region', vArts.length, r2(matRec), itemsCrafted, r2(vRev)]);
+      vRows.push([v.id, v.name, v.district || 'Region', vArts.length, matBreakdown, itemsCrafted, r2(vRev)]);
     });
     const ws = XLSX.utils.aoa_to_sheet(vRows);
     XLSX.utils.book_append_sheet(wb, ws, '🏡 Village Performance');
@@ -1409,11 +1451,18 @@ function generateHastkalaExcelReport() {
   // Sheet 6: Store POS Sales
   if (document.getElementById('sheetSales').checked) {
     const sRows = [
-      ['Transaction Date', 'Items Sold', 'Total Sale Amount', 'Net Profit']
+      ['Transaction Date', 'Customer Name', 'Payment Mode', 'Items Sold', 'Total Sale Amount', 'Net Profit']
     ];
     txns.forEach(t => {
       const itemsStr = t.items.map(i => `${i.qty}x ${i.name}`).join(', ');
-      sRows.push([new Date(t.ts).toLocaleString('en-IN'), itemsStr, r2(t.total), r2(t.profit)]);
+      sRows.push([
+        new Date(t.ts).toLocaleString('en-IN'),
+        t.customerName || 'Walk-in Customer',
+        t.paymentMode || 'Cash',
+        itemsStr,
+        r2(t.total),
+        r2(t.profit)
+      ]);
     });
     const ws = XLSX.utils.aoa_to_sheet(sRows);
     XLSX.utils.book_append_sheet(wb, ws, '🛒 POS Store Sales');
