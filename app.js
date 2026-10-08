@@ -263,7 +263,8 @@ function seedSampleData() {
 
     state.productionLogs = [
       { id: uid(), artisanId: a1, villageId: v1, productName: 'Handwoven Jute Tote Bag', qtyProduced: 15, materialUsed: '10 m Jute Fabric', costPrice: 120, sellPrice: 280, emoji: '👜', ts: Date.now() - 86400000 },
-      { id: uid(), artisanId: a2, villageId: v2, productName: 'Chikan Embroidered Dupatta', qtyProduced: 10, materialUsed: '5 kg Cotton Thread', costPrice: 200, sellPrice: 550, emoji: '🧣', ts: Date.now() - 43200000 }
+      { id: uid(), artisanId: a2, villageId: v2, productName: 'Chikan Embroidered Dupatta', qtyProduced: 10, materialUsed: '5 kg Cotton Thread', costPrice: 200, sellPrice: 550, emoji: '🧣', ts: Date.now() - 43200000 },
+      { id: uid(), artisanId: a3, villageId: v3, productName: 'Artisanal Terracotta Vase', qtyProduced: 18, materialUsed: '25 kg Terracotta Clay', costPrice: 70, sellPrice: 200, emoji: '🏺', ts: Date.now() - 21600000 }
     ];
 
     state.products = [
@@ -327,6 +328,18 @@ function getVillageMaterialBreakdown(villageId) {
     matTotals[key] = (matTotals[key] || 0) + Number(d.qty);
   });
   return Object.entries(matTotals).map(([mat, qty]) => `${r2(qty)} ${mat}`).join(', ');
+}
+
+// Village Itemized Production Breakdown
+function getVillageProductionBreakdown(villageId) {
+  const vLogs = state.productionLogs.filter(pr => pr.villageId === villageId);
+  if (vLogs.length === 0) return 'No production logged yet';
+  const prodTotals = {};
+  vLogs.forEach(pr => {
+    const key = `${pr.emoji || '📦'} ${pr.productName}`;
+    prodTotals[key] = (prodTotals[key] || 0) + Number(pr.qtyProduced);
+  });
+  return Object.entries(prodTotals).map(([name, qty]) => `${qty}x ${name}`).join(', ');
 }
 
 // ===================================================
@@ -460,7 +473,7 @@ function renderHome() {
   document.getElementById('allProfit').textContent = formatCurrency(allProfit);
   document.getElementById('allTxn').textContent = `${allTxn.length} (💵 Cash: ${formatCurrency(cashRev)} | 📱 UPI: ${formatCurrency(upiRev)})`;
 
-  // Render Village Raw Material Cards on Dashboard
+  // Render Village Raw Material & Production Cards on Dashboard
   const homeVillageList = document.getElementById('homeVillageList');
   if (state.villages.length === 0) {
     homeVillageList.innerHTML = '<div class="empty-state">No villages added yet. Go to Villages tab to add!</div>';
@@ -468,10 +481,7 @@ function renderHome() {
     homeVillageList.innerHTML = state.villages.map(v => {
       const vArtisans = state.artisans.filter(a => a.villageId === v.id);
       const matBreakdown = getVillageMaterialBreakdown(v.id);
-
-      const vProds = state.productionLogs.filter(pr => pr.villageId === v.id);
-      let unitsCrafted = 0;
-      vProds.forEach(p => unitsCrafted += Number(p.qtyProduced));
+      const prodBreakdown = getVillageProductionBreakdown(v.id);
 
       return `
         <div class="village-card">
@@ -480,14 +490,14 @@ function renderHome() {
             <span class="artisan-village-tag">${v.district || 'Region'}</span>
           </div>
           <div class="village-stats-flex">
-            <div class="village-stat-item">
-              Artisans: <strong>${vArtisans.length} women</strong>
-            </div>
-            <div class="village-stat-item">
-              Craft Output: <strong>${unitsCrafted} units produced</strong>
+            <div class="village-stat-item" style="grid-column:1/-1">
+              Artisans: <strong>${vArtisans.length} women registered</strong>
             </div>
             <div class="village-stat-item" style="grid-column:1/-1">
-              Raw Material Dispatched: <strong style="color:var(--accent2);">${matBreakdown}</strong>
+              🧵 Raw Material Dispatched: <strong style="color:var(--accent2);">${matBreakdown}</strong>
+            </div>
+            <div class="village-stat-item" style="grid-column:1/-1">
+              🔨 Items Produced: <strong style="color:var(--green);">${prodBreakdown}</strong>
             </div>
           </div>
         </div>
@@ -557,10 +567,7 @@ function renderVillagesAndArtisans() {
     vList.innerHTML = state.villages.map(v => {
       const vArtisans = state.artisans.filter(a => a.villageId === v.id);
       const matBreakdown = getVillageMaterialBreakdown(v.id);
-
-      const vProds = state.productionLogs.filter(pr => pr.villageId === v.id);
-      let unitsProduced = 0;
-      vProds.forEach(pr => unitsProduced += Number(pr.qtyProduced));
+      const prodBreakdown = getVillageProductionBreakdown(v.id);
 
       return `
         <div class="village-card">
@@ -572,14 +579,14 @@ function renderVillagesAndArtisans() {
             <button class="inv-btn edit" onclick="deleteVillage('${v.id}')">🗑️ Delete</button>
           </div>
           <div class="village-stats-flex" style="margin-top:8px">
-            <div class="village-stat-item">
+            <div class="village-stat-item" style="grid-column:1/-1">
               Artisans Registered: <strong>${vArtisans.length} women</strong>
             </div>
-            <div class="village-stat-item">
-              Craft Output: <strong>${unitsProduced} finished products</strong>
+            <div class="village-stat-item" style="grid-column:1/-1">
+              🧵 Raw Material Dispatched: <strong style="color:var(--accent2);">${matBreakdown}</strong>
             </div>
             <div class="village-stat-item" style="grid-column:1/-1">
-              Raw Material Dispatched: <strong style="color:var(--accent2);">${matBreakdown}</strong>
+              🔨 Items Produced: <strong style="color:var(--green);">${prodBreakdown}</strong>
             </div>
           </div>
         </div>
@@ -1184,10 +1191,12 @@ function renderAnalytics() {
   const analyticsEl = document.getElementById('productAnalytics');
   const historyEl   = document.getElementById('txnHistoryList');
 
-  // Village Revenue Attributions
+  // Village Revenue & Production Attributions
   const villageStats = {};
   state.villages.forEach(v => {
-    villageStats[v.id] = { name: v.name, revenue: 0, unitsSold: 0 };
+    const matBreakdown = getVillageMaterialBreakdown(v.id);
+    const prodBreakdown = getVillageProductionBreakdown(v.id);
+    villageStats[v.id] = { name: v.name, revenue: 0, unitsSold: 0, matBreakdown, prodBreakdown };
   });
 
   txns.forEach(t => {
@@ -1206,7 +1215,7 @@ function renderAnalytics() {
           <span class="analytics-emoji">🏡</span>
           <div>
             <div class="analytics-name">${vs.name} Village</div>
-            <div class="analytics-category">Attributed POS Revenue</div>
+            <div class="analytics-category">Village Production & POS Attributions</div>
           </div>
         </div>
         <div class="analytics-metrics">
@@ -1218,6 +1227,12 @@ function renderAnalytics() {
             <div class="analytics-metric-val color-green">${formatCurrency(vs.revenue)}</div>
             <div class="analytics-metric-label">Revenue Earned</div>
           </div>
+        </div>
+        <div style="font-size:12px;color:var(--text2);margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
+          🔨 <strong>Items Produced:</strong> <span style="color:var(--green);">${vs.prodBreakdown}</span>
+        </div>
+        <div style="font-size:12px;color:var(--text2);margin-top:4px">
+          🧵 <strong>Raw Material:</strong> <span style="color:var(--accent2);">${vs.matBreakdown}</span>
         </div>
       </div>
     `;
@@ -1360,11 +1375,12 @@ function generateHastkalaExcelReport() {
   // Sheet 2: Village Performance
   if (document.getElementById('sheetVillages').checked) {
     const vRows = [
-      ['Village ID', 'Village Name', 'District / Region', 'Women Artisans Count', 'Raw Material Breakdown', 'Finished Items Produced', 'Attributed Sales Revenue']
+      ['Village ID', 'Village Name', 'District / Region', 'Women Artisans Count', 'Raw Material Breakdown', 'Items Produced Breakdown', 'Total Units Produced', 'Attributed Sales Revenue']
     ];
     state.villages.forEach(v => {
       const vArts = state.artisans.filter(a => a.villageId === v.id);
       const matBreakdown = getVillageMaterialBreakdown(v.id);
+      const prodBreakdown = getVillageProductionBreakdown(v.id);
 
       const vProd = state.productionLogs.filter(pr => pr.villageId === v.id);
       let itemsCrafted = 0;
@@ -1377,7 +1393,7 @@ function generateHastkalaExcelReport() {
         });
       });
 
-      vRows.push([v.id, v.name, v.district || 'Region', vArts.length, matBreakdown, itemsCrafted, r2(vRev)]);
+      vRows.push([v.id, v.name, v.district || 'Region', vArts.length, matBreakdown, prodBreakdown, itemsCrafted, r2(vRev)]);
     });
     const ws = XLSX.utils.aoa_to_sheet(vRows);
     XLSX.utils.book_append_sheet(wb, ws, '🏡 Village Performance');
