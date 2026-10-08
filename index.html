@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <meta name="description" content="Hastkala - Rural Artisan Supply Chain, Production & POS Sales Platform" />
-  <title>Hastkala – Rural Artisans, Production & POS</title>
+  <meta name="description" content="Hastkala - Rural Artisan Supply Chain, Dynamic Form Builder, Production & POS Platform" />
+  <title>Hastkala – Rural Artisans, Supply Chain & POS</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -104,7 +104,7 @@
             </div>
             <div class="divider-thin"></div>
             <div class="all-time-row">
-              <span>Total POS Transactions</span>
+              <span>Total POS Sales</span>
               <span class="all-time-val" id="allTxn">0</span>
             </div>
           </div>
@@ -128,7 +128,7 @@
           
           <!-- Section Switch Tabs -->
           <div class="period-tabs" style="margin-bottom:16px;">
-            <button class="period-tab active" id="tabSubVillages" onclick="switchVillageSubTab('villages')">🏡 Villages Admin Panel</button>
+            <button class="period-tab active" id="tabSubVillages" onclick="switchVillageSubTab('villages')">🏡 Villages Admin</button>
             <button class="period-tab" id="tabSubArtisans" onclick="switchVillageSubTab('artisans')">👩‍🎨 Women Artisans</button>
           </div>
 
@@ -145,7 +145,10 @@
           <div id="subViewArtisans" style="display:none">
             <div class="inv-header">
               <h2>Women Artisans Directory</h2>
-              <button class="add-product-btn" onclick="openModal('addArtisanModal')">+ Register Artisan</button>
+              <div style="display:flex;gap:6px">
+                <button class="btn-secondary" style="padding:6px 10px;font-size:12px;border-radius:8px;" onclick="openModal('manageCustomFieldsModal')">⚙️ Form Builder</button>
+                <button class="add-product-btn" onclick="openModal('addArtisanModal')">+ Register Artisan</button>
+              </div>
             </div>
 
             <!-- Filter by Village -->
@@ -384,7 +387,7 @@
     </div>
   </div>
 
-  <!-- Register Woman Artisan Modal -->
+  <!-- Dynamic Register Woman Artisan Modal -->
   <div class="modal-overlay" id="addArtisanModal">
     <div class="modal">
       <div class="modal-header">
@@ -392,6 +395,7 @@
         <button class="modal-close" onclick="closeModal('addArtisanModal')">✕</button>
       </div>
       <div class="modal-body">
+        <!-- Standard Mandatory Fields -->
         <div class="form-group">
           <label>Full Name *</label>
           <input type="text" id="artName" placeholder="e.g. Sunita Devi" required />
@@ -406,25 +410,40 @@
             <select id="artVillageSelect" class="excel-select"></select>
           </div>
         </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Aadhaar Number</label>
-            <input type="text" id="artAadhaar" placeholder="12-digit Aadhaar No." maxlength="14" />
-          </div>
-          <div class="form-group">
-            <label>Craft Specialization</label>
-            <input type="text" id="artCraft" placeholder="e.g. Embroidery, Weaving, Pottery" />
-          </div>
-        </div>
-        <div class="form-group">
-          <label>Photo URL / Avatar</label>
-          <input type="url" id="artPhoto" placeholder="https://..." />
-          <span class="input-help">Optional image URL for artisan photo badge</span>
-        </div>
+
+        <!-- Dynamic Admin Custom Form Fields Container -->
+        <div id="dynamicArtisanFormFields"></div>
       </div>
       <div class="modal-footer">
         <button class="btn-secondary" onclick="closeModal('addArtisanModal')">Cancel</button>
         <button class="btn-primary" onclick="saveArtisan()">Register Artisan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin Custom Form Builder Modal -->
+  <div class="modal-overlay" id="manageCustomFieldsModal">
+    <div class="modal modal-sm">
+      <div class="modal-header">
+        <h3>⚙️ Custom Form Builder</h3>
+        <button class="modal-close" onclick="closeModal('manageCustomFieldsModal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:12px;color:var(--text2);margin-bottom:12px;">Add or remove custom fields for the Woman Artisan Registration Form (e.g. Bank Account, Voter ID, Skill Level).</p>
+        
+        <div class="form-group" style="margin-bottom:12px;">
+          <label>New Custom Field Label</label>
+          <div style="display:flex;gap:8px;">
+            <input type="text" id="newFieldName" placeholder="e.g. Bank A/c & IFSC" style="flex:1;" />
+            <button class="btn-primary" style="padding:8px 12px;font-size:13px;" onclick="addCustomArtisanField()">+ Add Field</button>
+          </div>
+        </div>
+
+        <div class="section-title" style="margin-top:16px;">Active Custom Form Fields</div>
+        <div id="customFieldsList" class="material-list"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeModal('manageCustomFieldsModal')">Close</button>
       </div>
     </div>
   </div>
@@ -591,7 +610,7 @@
         <button class="modal-close" id="closeExcelModal">✕</button>
       </div>
       <div class="modal-body">
-        <p style="color:var(--text2);font-size:13px;margin-bottom:16px;">Download a complete 6-sheet Excel report covering Raw Materials, Villages, Women Artisans, Production Yield & Store POS Sales.</p>
+        <p style="color:var(--text2);font-size:13px;margin-bottom:16px;">Download a complete 6-sheet Excel report covering Raw Materials, Villages, Women Artisans (with all Custom Fields), Production Yield & Store POS Sales.</p>
 
         <div class="excel-period-row">
           <label style="font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;">Report Period</label>
@@ -630,7 +649,7 @@
               <span class="excel-option-icon">👩‍🎨</span>
               <div>
                 <div class="excel-option-title">3. Women Artisans Roster</div>
-                <div class="excel-option-desc">Phone, Aadhaar, Village, Material & Craft logs</div>
+                <div class="excel-option-desc">Phone, Aadhaar, Village & Dynamic Custom Fields</div>
               </div>
             </div>
           </label>

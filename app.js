@@ -1,5 +1,5 @@
 /* ====================================================
-   Hastkala – Rural Artisan Supply Chain, Production & POS
+   Hastkala – Rural Artisan Supply Chain, Dynamic Form Builder, Production & POS
    app.js — Complete Application Logic
    ==================================================== */
 
@@ -8,13 +8,14 @@
 // ===================================================
 // STATE & STORAGE CONSTANTS
 // ===================================================
-const DB_VILLAGES    = 'hastkala_villages';
-const DB_ARTISANS    = 'hastkala_artisans';
-const DB_RAW_MAT     = 'hastkala_raw_materials';
-const DB_DISPATCHES  = 'hastkala_dispatches';
-const DB_PRODUCTION  = 'hastkala_production';
-const DB_PRODUCTS    = 'hastkala_products';
-const DB_TXN         = 'hastkala_txn';
+const DB_VILLAGES       = 'hastkala_villages';
+const DB_ARTISANS       = 'hastkala_artisans';
+const DB_RAW_MAT        = 'hastkala_raw_materials';
+const DB_DISPATCHES     = 'hastkala_dispatches';
+const DB_PRODUCTION     = 'hastkala_production';
+const DB_PRODUCTS       = 'hastkala_products';
+const DB_TXN            = 'hastkala_txn';
+const DB_CUSTOM_FIELDS  = 'hastkala_custom_fields';
 
 let state = {
   villages: [],
@@ -24,6 +25,7 @@ let state = {
   productionLogs: [],
   products: [],
   transactions: [],
+  customArtisanFields: [],
   cart: [],
   currentPage: 'home',
   artisanVillageFilter: 'all',
@@ -155,6 +157,7 @@ function saveAllData() {
   localStorage.setItem(DB_PRODUCTION, JSON.stringify(state.productionLogs));
   localStorage.setItem(DB_PRODUCTS, JSON.stringify(state.products));
   localStorage.setItem(DB_TXN, JSON.stringify(state.transactions));
+  localStorage.setItem(DB_CUSTOM_FIELDS, JSON.stringify(state.customArtisanFields));
 
   if (state.currentUser && db) {
     db.collection('users').doc(state.currentUser.uid).set({
@@ -165,7 +168,8 @@ function saveAllData() {
         dispatches: state.dispatches,
         productionLogs: state.productionLogs,
         products: state.products,
-        transactions: state.transactions
+        transactions: state.transactions,
+        customArtisanFields: state.customArtisanFields
       }
     }, { merge: true }).catch(err => console.warn('Cloud save error:', err));
   }
@@ -180,6 +184,7 @@ function loadData() {
     const pr = localStorage.getItem(DB_PRODUCTION);
     const p = localStorage.getItem(DB_PRODUCTS);
     const t = localStorage.getItem(DB_TXN);
+    const cf = localStorage.getItem(DB_CUSTOM_FIELDS);
 
     if (v)  state.villages = JSON.parse(v);
     if (a)  state.artisans = JSON.parse(a);
@@ -188,6 +193,7 @@ function loadData() {
     if (pr) state.productionLogs = JSON.parse(pr);
     if (p)  state.products = JSON.parse(p);
     if (t)  state.transactions = JSON.parse(t);
+    if (cf) state.customArtisanFields = JSON.parse(cf);
   } catch(e) { console.warn('Data load error', e); }
 }
 
@@ -205,6 +211,7 @@ async function loadUserDataFromFirebase(uid) {
       state.productionLogs = h.productionLogs || [];
       state.products = h.products || [];
       state.transactions = h.transactions || [];
+      state.customArtisanFields = h.customArtisanFields || [];
     } else {
       seedSampleData();
       await docRef.set({
@@ -215,7 +222,8 @@ async function loadUserDataFromFirebase(uid) {
           dispatches: state.dispatches,
           productionLogs: state.productionLogs,
           products: state.products,
-          transactions: state.transactions
+          transactions: state.transactions,
+          customArtisanFields: state.customArtisanFields
         }
       }, { merge: true });
     }
@@ -230,6 +238,15 @@ async function loadUserDataFromFirebase(uid) {
 // SEED INITIAL DEMO DATA (First Run)
 // ===================================================
 function seedSampleData() {
+  if (!state.customArtisanFields || state.customArtisanFields.length === 0) {
+    state.customArtisanFields = [
+      { id: 'f_aadhaar', label: 'Aadhaar Number', placeholder: '12-digit Aadhaar No.' },
+      { id: 'f_craft', label: 'Craft Specialization', placeholder: 'e.g. Embroidery, Weaving, Pottery' },
+      { id: 'f_bank', label: 'Bank A/c & IFSC', placeholder: 'e.g. 123456789 (SBIN000123)' },
+      { id: 'f_photo', label: 'Photo URL', placeholder: 'https://...' }
+    ];
+  }
+
   if (state.villages.length === 0) {
     const v1 = uid(), v2 = uid(), v3 = uid(), v4 = uid();
     state.villages = [
@@ -248,10 +265,10 @@ function seedSampleData() {
 
     const a1 = uid(), a2 = uid(), a3 = uid(), a4 = uid();
     state.artisans = [
-      { id: a1, name: 'Sunita Devi', phone: '9876543210', villageId: v1, aadhaar: '4589-1234-5678', craft: 'Handloom Weaving', photo: '' },
-      { id: a2, name: 'Anita Sharma', phone: '9812345678', villageId: v2, aadhaar: '8912-3456-7890', craft: 'Chikankari Embroidery', photo: '' },
-      { id: a3, name: 'Meena Kumari', phone: '9765432109', villageId: v3, aadhaar: '1234-5678-9012', craft: 'Terracotta Pottery', photo: '' },
-      { id: a4, name: 'Radha Patel', phone: '9988776655', villageId: v4, aadhaar: '6789-0123-4567', craft: 'Jute Handicrafts', photo: '' }
+      { id: a1, name: 'Sunita Devi', phone: '9876543210', villageId: v1, customData: { f_aadhaar: '4589-1234-5678', f_craft: 'Handloom Weaving', f_bank: '987654321 (SBIN000123)' } },
+      { id: a2, name: 'Anita Sharma', phone: '9812345678', villageId: v2, customData: { f_aadhaar: '8912-3456-7890', f_craft: 'Chikankari Embroidery', f_bank: '456789123 (HDFC000456)' } },
+      { id: a3, name: 'Meena Kumari', phone: '9765432109', villageId: v3, customData: { f_aadhaar: '1234-5678-9012', f_craft: 'Terracotta Pottery', f_bank: '123987456 (ICIC000789)' } },
+      { id: a4, name: 'Radha Patel', phone: '9988776655', villageId: v4, customData: { f_aadhaar: '6789-0123-4567', f_craft: 'Jute Handicrafts', f_bank: '789123456 (PUNB000321)' } }
     ];
 
     state.dispatches = [
@@ -355,28 +372,103 @@ function showToast(msg, type = '') {
 }
 
 // ===================================================
+// DYNAMIC FORM BUILDER ENGINE (ADMIN CONTROL)
+// ===================================================
+function renderDynamicArtisanFormFields() {
+  const container = document.getElementById('dynamicArtisanFormFields');
+  if (!container) return;
+
+  if (!state.customArtisanFields || state.customArtisanFields.length === 0) {
+    container.innerHTML = '';
+    return;
+  }
+
+  container.innerHTML = state.customArtisanFields.map(f => `
+    <div class="form-group" style="margin-top:10px;">
+      <label>${f.label}</label>
+      <input type="text" id="custField_${f.id}" placeholder="${f.placeholder || ''}" />
+    </div>
+  `).join('');
+}
+
+function renderCustomFieldsAdminList() {
+  const list = document.getElementById('customFieldsList');
+  if (!list) return;
+
+  if (!state.customArtisanFields || state.customArtisanFields.length === 0) {
+    list.innerHTML = '<div class="empty-state">No custom form fields added.<br>Add one above!</div>';
+    return;
+  }
+
+  list.innerHTML = state.customArtisanFields.map(f => `
+    <div class="material-card" style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;">
+      <div>
+        <div style="font-size:14px;font-weight:700;">${f.label}</div>
+        <div style="font-size:12px;color:var(--text2);">ID: ${f.id}</div>
+      </div>
+      <button class="inv-btn delete" onclick="deleteCustomArtisanField('${f.id}')">🗑️ Remove</button>
+    </div>
+  `).join('');
+}
+
+function addCustomArtisanField() {
+  const labelInput = document.getElementById('newFieldName');
+  const label = labelInput.value.trim();
+  if (!label) {
+    showToast('Enter a field name', 'error');
+    return;
+  }
+
+  const fieldId = 'f_' + Date.now().toString(36);
+  state.customArtisanFields.push({
+    id: fieldId,
+    label: label,
+    placeholder: `Enter ${label}...`
+  });
+
+  saveAllData();
+  labelInput.value = '';
+  showToast(`⚙️ Custom field "${label}" added to Artisan Form!`, 'success');
+  renderCustomFieldsAdminList();
+  renderDynamicArtisanFormFields();
+}
+
+function deleteCustomArtisanField(id) {
+  if (!confirm('Remove this custom form field?')) return;
+  state.customArtisanFields = state.customArtisanFields.filter(f => f.id !== id);
+  saveAllData();
+  showToast('Custom field removed', 'error');
+  renderCustomFieldsAdminList();
+  renderDynamicArtisanFormFields();
+}
+
+// ===================================================
 // MODAL HELPERS
 // ===================================================
 function openModal(id) {
   populateSelectDropdowns();
+  if (id === 'addArtisanModal') {
+    renderDynamicArtisanFormFields();
+  }
+  if (id === 'manageCustomFieldsModal') {
+    renderCustomFieldsAdminList();
+  }
   document.getElementById(id).classList.add('open');
 }
+
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 
 function populateSelectDropdowns() {
-  // Village select
   const artV = document.getElementById('artVillageSelect');
   if (artV) {
     artV.innerHTML = state.villages.map(v => `<option value="${v.id}">${v.name} (${v.district || 'Region'})</option>`).join('');
   }
 
-  // Raw Material select
   const dMat = document.getElementById('dispatchMaterialSelect');
   if (dMat) {
     dMat.innerHTML = state.rawMaterials.map(m => `<option value="${m.id}">${m.name} (${m.plantStock} ${m.unit} in Plant)</option>`).join('');
   }
 
-  // Artisan select for dispatch and production
   const dArt = document.getElementById('dispatchArtisanSelect');
   const pArt = document.getElementById('prodArtisanSelect');
   const artisanOptions = state.artisans.map(a => {
@@ -604,7 +696,7 @@ function renderVillagesAndArtisans() {
     filterRow.innerHTML = chipsHtml;
   }
 
-  // Render Artisans List
+  // Render Artisans List with Dynamic Custom Fields
   const aList = document.getElementById('artisanList');
   let filteredArtisans = state.artisans;
   if (state.artisanVillageFilter !== 'all') {
@@ -626,20 +718,32 @@ function renderVillagesAndArtisans() {
       let unitsCrafted = 0;
       aProds.forEach(pr => unitsCrafted += Number(pr.qtyProduced));
 
+      // Build custom field badges
+      let customBadgesHtml = '';
+      if (a.customData) {
+        state.customArtisanFields.forEach(f => {
+          const val = a.customData[f.id];
+          if (val && f.id !== 'f_photo') {
+            customBadgesHtml += `<span class="detail-pill">${f.label}: <strong>${val}</strong></span>`;
+          }
+        });
+      }
+
+      const photoUrl = a.customData ? a.customData['f_photo'] : '';
+
       return `
         <div class="artisan-card">
           <div class="artisan-header-row">
-            ${a.photo ? `<img src="${a.photo}" class="artisan-avatar-img" alt="${a.name}" />` : `<div class="artisan-avatar-fallback">👩‍🎨</div>`}
+            ${photoUrl ? `<img src="${photoUrl}" class="artisan-avatar-img" alt="${a.name}" />` : `<div class="artisan-avatar-fallback">👩‍🎨</div>`}
             <div class="artisan-info-meta">
               <div class="artisan-name">${a.name}</div>
               <span class="artisan-village-tag">🏡 ${vName}</span>
-              <div style="font-size:12px;color:var(--text2);margin-top:2px">Skill: <strong>${a.craft || 'Handicrafts'}</strong></div>
+              <div style="font-size:12px;color:var(--text2);margin-top:2px">Phone: <strong>${a.phone || 'N/A'}</strong></div>
             </div>
             <button class="inv-btn delete" onclick="deleteArtisan('${a.id}')">🗑️</button>
           </div>
           <div class="artisan-detail-pills">
-            <span class="detail-pill">📞 Phone: ${a.phone || 'N/A'}</span>
-            <span class="detail-pill">🆔 Aadhaar: ${a.aadhaar || 'N/A'}</span>
+            ${customBadgesHtml}
             <span class="detail-pill" style="color:var(--accent)">🧵 Mat Rec: ${r2(matRec)} units</span>
             <span class="detail-pill" style="color:var(--green)">🔨 Output: ${unitsCrafted} units</span>
           </div>
@@ -682,23 +786,28 @@ function saveArtisan() {
   const name = document.getElementById('artName').value.trim();
   const phone = document.getElementById('artPhone').value.trim();
   const villageId = document.getElementById('artVillageSelect').value;
-  const aadhaar = document.getElementById('artAadhaar').value.trim();
-  const craft = document.getElementById('artCraft').value.trim();
-  const photo = document.getElementById('artPhoto').value.trim();
 
   if (!name || !phone || !villageId) {
     showToast('Name, Phone & Village are required', 'error');
     return;
   }
 
-  state.artisans.push({ id: uid(), name, phone, villageId, aadhaar, craft, photo });
+  // Read all dynamic admin custom fields
+  const customData = {};
+  if (state.customArtisanFields) {
+    state.customArtisanFields.forEach(f => {
+      const inputEl = document.getElementById(`custField_${f.id}`);
+      if (inputEl) {
+        customData[f.id] = inputEl.value.trim();
+      }
+    });
+  }
+
+  state.artisans.push({ id: uid(), name, phone, villageId, customData });
   saveAllData();
   closeModal('addArtisanModal');
   document.getElementById('artName').value = '';
   document.getElementById('artPhone').value = '';
-  document.getElementById('artAadhaar').value = '';
-  document.getElementById('artCraft').value = '';
-  document.getElementById('artPhoto').value = '';
   showToast(`👩‍🎨 Artisan "${name}" registered!`, 'success');
   renderVillagesAndArtisans();
 }
@@ -1399,11 +1508,12 @@ function generateHastkalaExcelReport() {
     XLSX.utils.book_append_sheet(wb, ws, '🏡 Village Performance');
   }
 
-  // Sheet 3: Women Artisans Roster
+  // Sheet 3: Women Artisans Roster with Dynamic Admin Custom Fields
   if (document.getElementById('sheetArtisans').checked) {
-    const aRows = [
-      ['Artisan Name', 'Phone Number', 'Aadhaar Number', 'Village', 'Craft Specialization', 'Material Received (units)', 'Units Crafted']
-    ];
+    const customHeaderLabels = (state.customArtisanFields || []).map(f => f.label);
+    const aHeader = ['Artisan Name', 'Phone Number', 'Village', ...customHeaderLabels, 'Material Received (units)', 'Units Crafted'];
+    const aRows = [aHeader];
+
     state.artisans.forEach(a => {
       const v = getVillageById(a.villageId);
       const aDisp = state.dispatches.filter(d => d.artisanId === a.id);
@@ -1414,7 +1524,9 @@ function generateHastkalaExcelReport() {
       let unitsCrafted = 0;
       aProd.forEach(p => unitsCrafted += Number(p.qtyProduced));
 
-      aRows.push([a.name, a.phone || '', a.aadhaar || '', v ? v.name : '', a.craft || '', r2(matRec), unitsCrafted]);
+      const customVals = (state.customArtisanFields || []).map(f => (a.customData && a.customData[f.id]) ? a.customData[f.id] : '');
+
+      aRows.push([a.name, a.phone || '', v ? v.name : '', ...customVals, r2(matRec), unitsCrafted]);
     });
     const ws = XLSX.utils.aoa_to_sheet(aRows);
     XLSX.utils.book_append_sheet(wb, ws, '👩‍🎨 Women Artisans Roster');
